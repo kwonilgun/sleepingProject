@@ -41,6 +41,15 @@ node_modules/
 npm-debug.log
 yarn-error.log
 
+#주요 assets사게
+assets/
+constants/
+#
+android/app/*.json
+android/gradle.properties
+ios/package_0424/GoogleService-Info.plist
+ios/GoogleService-Info.plist
+
 # fastlane
 #
 # It is recommended to not store the screenshots in the git repo. Instead, use fastlane to re-generate the

@@ -1,0 +1,31 @@
+import React from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+
+import PlayerScreen from './PlayerScreen'; // Assuming PlayerScreen.tsx is in the same directory
+import PlaylistScreen from './PlaylistScreen'; // Assuming PlaylistScreen.tsx is in the same directory
+import { enableScreens } from 'react-native-screens';
+enableScreens();
+
+const Stack = createNativeStackNavigator();
+
+const App: React.FC = () => {
+  return (
+    <NavigationContainer>
+      <Stack.Navigator initialRouteName="Playlist">
+        <Stack.Screen
+          name="Playlist"
+          component={PlaylistScreen}
+          options={{ title: '음악 재생 목록' }}
+        />
+        <Stack.Screen
+          name="Player"
+          component={PlayerScreen}
+          options={{ title: '음악 플레이어' }}
+        />
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
+};
+
+export default App;

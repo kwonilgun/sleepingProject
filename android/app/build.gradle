@@ -92,6 +92,14 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+        release {
+            if (project.hasProperty('MYAPP_UPLOAD_STORE_FILE')) {
+                storeFile file(MYAPP_UPLOAD_STORE_FILE)
+                storePassword MYAPP_UPLOAD_STORE_PASSWORD
+                keyAlias MYAPP_UPLOAD_KEY_ALIAS
+                keyPassword MYAPP_UPLOAD_KEY_PASSWORD
+            }
+        }
     }
     buildTypes {
         debug {
@@ -117,3 +125,9 @@ dependencies {
         implementation jscFlavor
     }
 }
+
+/**
+2024-12-17 : Bottom tab에 아이콘에 안나올 때 문제 해결 
+ */
+
+apply from: "../../node_modules/react-native-vector-icons/fonts.gradle"

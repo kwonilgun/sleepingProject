@@ -5,7 +5,10 @@ require Pod::Executable.execute_command('node', ['-p',
     {paths: [process.argv[1]]},
   )', __dir__]).strip
 
+$RNFirebaseAsStaticFramework = true # if you're using firebase
+
 platform :ios, min_ios_version_supported
+deployment_target = '13.0'
 prepare_react_native_project!
 
 linkage = ENV['USE_FRAMEWORKS']
@@ -15,7 +18,21 @@ if linkage != nil
 end
 
 target 'sleepingProject' do
+
+  $RNFirebaseAsStaticFramework = true
+
   config = use_native_modules!
+
+  pod 'FirebaseAuth' 
+  pod 'FirebaseFirestore'
+
+  pod 'GoogleUtilities', :modular_headers => true
+
+  # Flags change depending on the env values.
+  flags = get_default_flags()
+
+  use_frameworks! :linkage => :static
+
 
   use_react_native!(
     :path => config[:reactNativePath],
