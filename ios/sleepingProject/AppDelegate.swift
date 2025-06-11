@@ -1,4 +1,5 @@
 import UIKit
+//import Firebase
 import React
 import React_RCTAppDelegate
 import ReactAppDependencyProvider
@@ -16,6 +17,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
   ) -> Bool {
     let delegate = ReactNativeDelegate()
     let factory = RCTReactNativeFactory(delegate: delegate)
+    
+//    FirebaseApp.configure() //2025-05-01 11:07:41, 추가
+    
     delegate.dependencyProvider = RCTAppDependencyProvider()
 
     reactNativeDelegate = delegate
