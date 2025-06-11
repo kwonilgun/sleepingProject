@@ -47,7 +47,7 @@ constants/
 #
 android/app/*.json
 android/gradle.properties
-ios/package_0424/GoogleService-Info.plist
+ios/sleepingProject/GoogleService-Info.plist
 ios/GoogleService-Info.plist
 
 # fastlane

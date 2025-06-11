@@ -167,10 +167,10 @@ const SystemInfoScreen: React.FC<SystemInfoScreenProps> = props => {
       // 2025-03-28 15:15:48, googl sign out 추가
       if(Platform.OS === 'android'){
         googleLogout();
-        handleKakaoLogout();
+        // handleKakaoLogout();
       } else {
         appleLogout();
-        handleKakaoLogout();
+        // handleKakaoLogout();
       }
 
       props.navigation.navigate('UserMain', {screen: 'LoginScreen'});

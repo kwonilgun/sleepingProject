@@ -40,6 +40,13 @@ interface PlayerScreenProps {
   navigation: any;
 }
 
+// Define RepeatMode enum for clarity
+enum RepeatMode {
+  Off,
+  RepeatOne,
+  RepeatAll,
+}
+
 const PlayerScreen: React.FC<PlayerScreenProps> = ({ route, navigation }) => {
   const playerRef = useRef<Video>(null);
 
@@ -48,6 +55,7 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ route, navigation }) => {
   const [currentTime, setCurrentTime] = useState<number>(0);
   const [duration, setDuration] = useState<number>(0);
   const [currentTrackIndex, setCurrentTrackIndex] = useState<number>(0);
+  const [repeatMode, setRepeatMode] = useState<RepeatMode>(RepeatMode.Off); // New state for repeat mode
 
   const { selectedTracks, playlist } = route.params;
 
@@ -59,7 +67,7 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ route, navigation }) => {
     // Only proceed if a track is selected and found in the playlist
     if (currentTrack) {
       console.log('currentTrack = ', currentTrack);
-      console.log('Now playing: title', currentTrack.title || currentTrack.name);
+      console.log('Now playing: name', currentTrack.name);
       console.log('Now playing: uri', currentTrack.uri || '없음');
       setIsPlaying(true);
       if(currentTrack.duration){
@@ -67,22 +75,6 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ route, navigation }) => {
         setDuration(Math.floor(Number(currentTrack.duration)));
       }
       setCurrentTime(0); // Reset time when a new track starts
-
-      
-
-      // Fetch duration if not already present in the track object (optional, if your backend doesn't provide it initially)
-      // if (!currentTrack.duration) {
-      //   axios.get(`${baseURL}stream/meta/${currentTrack.uri}`)
-      //     .then(res => {
-      //       setDuration(res.data.duration);
-      //     })
-      //     .catch(e => {
-      //       console.error('Duration fetch failed:', e);
-      //       setDuration(0); // Set to 0 if duration fetch fails
-      //     });
-      // } else {
-      //   setDuration(currentTrack.duration);
-      // }
     } else {
       setIsPlaying(false);
       setCurrentTime(0);
@@ -101,27 +93,41 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ route, navigation }) => {
 
   const handleEnd = () => {
     console.log('Track ended');
-    if (selectedTracks.length > 0) {
-      const nextIndex = currentTrackIndex + 1;
-      if (nextIndex < selectedTracks.length) {
-        setCurrentTrackIndex(nextIndex);
-        // Playback will automatically start due to useEffect when currentTrackIndex changes
-      } else {
-        // All selected tracks played. Stop or loop.
-        setIsPlaying(false);
-        setCurrentTime(0);
-        setCurrentTrackIndex(0); // Reset to first track for potential re-play
-      }
-    } else {
+    if (selectedTracks.length === 0) {
       setIsPlaying(false);
       setCurrentTime(0);
+      return;
+    }
+
+    if (repeatMode === RepeatMode.RepeatOne) {
+      playerRef.current?.seek(0); // Restart current track
+      setCurrentTime(0);
+      setIsPlaying(true);
+      return;
+    }
+
+    let nextIndex = currentTrackIndex + 1;
+
+    if (nextIndex >= selectedTracks.length) {
+      if (repeatMode === RepeatMode.RepeatAll) {
+        nextIndex = 0; // Loop back to the first track
+        setCurrentTrackIndex(nextIndex); // Update index to first track
+        // Playback will automatically start due to useEffect when currentTrackIndex changes
+      } else {
+        // No repeat: stop playback and reset
+        setIsPlaying(false);
+        setCurrentTime(0);
+        // setCurrentTrackIndex(0); // Reset to first track for potential re-play
+      }
+    } else {
+      // Move to the next track in the playlist
+      setCurrentTrackIndex(nextIndex);
+      // Playback will automatically start due to useEffect when currentTrackIndex changes
     }
   };
 
   const handleLoad = (meta: { duration: number }) => {
     setDuration(meta.duration);
-    // Automatically start playing when loaded if intended
-    // setIsPlaying(true); // Uncomment if you want to auto-play after load
   };
 
   const handleProgress = (progress: { currentTime: number }) => {
@@ -143,11 +149,10 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ route, navigation }) => {
   };
 
   const handleSkipPrevious = () => {
-    if (currentTrackIndex > 0) {
-      setCurrentTrackIndex(currentTrackIndex - 1);
-    } else {
-      // If at the first track, restart it
+    if (currentTime > 3 || currentTrackIndex === 0) { // If more than 3 seconds into the song, restart it, or if it's the first track
       handleRestart();
+    } else if (currentTrackIndex > 0) {
+      setCurrentTrackIndex(currentTrackIndex - 1);
     }
   };
 
@@ -155,22 +160,49 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ route, navigation }) => {
     if (currentTrackIndex < selectedTracks.length - 1) {
       setCurrentTrackIndex(currentTrackIndex + 1);
     } else {
-      // If at the last track, you might want to stop or loop to the first
-      setIsPlaying(false);
-      setCurrentTime(0);
-      setCurrentTrackIndex(0); // Optional: reset to first track
+      if (repeatMode === RepeatMode.RepeatAll) {
+        setCurrentTrackIndex(0); // Loop to the first track
+      } else {
+        // If at the last track and no Repeat All, stop playback
+        setIsPlaying(false);
+        setCurrentTime(0);
+        setCurrentTrackIndex(0); // Optional: reset to first track
+      }
     }
   };
 
-  const currentTrackDisplayTitle = currentTrack?.title
-    ? convertEucKrToUtf8(currentTrack.title)
-    // : currentTrack?.name
-    // ? convertEucKrToUtf8(currentTrack.name)
-    : '선택된 곡 없음';
+  // Function to toggle repeat mode
+  const toggleRepeatMode = () => {
+    setRepeatMode((prevMode) => {
+      switch (prevMode) {
+        case RepeatMode.Off:
+          return RepeatMode.RepeatOne;
+        case RepeatMode.RepeatOne:
+          return RepeatMode.RepeatAll;
+        case RepeatMode.RepeatAll:
+          return RepeatMode.Off;
+        default:
+          return RepeatMode.Off;
+      }
+    });
+  };
 
-  const currentTrackArtist = currentTrack?.artist
-    ? ` - ${convertEucKrToUtf8(currentTrack.artist)}`
-    : '';
+  const getRepeatButtonTitle = () => {
+    switch (repeatMode) {
+      case RepeatMode.Off:
+        return '반복: 끄기';
+      case RepeatMode.RepeatOne:
+        return '반복: 한곡';
+      case RepeatMode.RepeatAll:
+        return '반복: 전체';
+      default:
+        return '반복';
+    }
+  };
+
+  const currentTrackDisplayTitle = currentTrack?.name
+    ? currentTrack.name.replace(/\.mp3$/i, '')  // .mp3 확장자 제거
+    : '선택된 곡 없음';
 
   const streamingUri = currentTrack?.uri ? `${baseURL}stream/${currentTrack.uri}` : undefined;
 
@@ -206,38 +238,46 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ route, navigation }) => {
         <Text style={styles.title}>🎵 음악 스트리밍 재생</Text>
         <Text style={styles.nowPlaying}>
           🎧 현재 재생 중: {currentTrackDisplayTitle}
-          {currentTrackArtist}
         </Text>
 
-        <Button
-          title={isPlaying ? '⏸️ 일시 정지' : '▶️ 재생 시작'}
-          onPress={togglePlayback}
-          disabled={!currentTrack}
-          color={isPlaying ? "#FF4500" : "#28a745"} // Green for play, orange for pause
-        />
-
-        <View style={{ marginTop: 10 }}>
-          <Button
-            title="⏪ 처음부터 재생"
+      <View style={styles.controlsContainer}>
+          {/* <Button
+            title="⏪"
             onPress={handleRestart}
-            color="#007bff" // Blue
+            color="#007bff"
             disabled={!currentTrack || !isPlaying}
-          />
-        </View>
-        <View style={{ marginTop: 10, flexDirection: 'row', justifyContent: 'space-around' }}>
+          /> */}
+
+          {/* Repeat Button */}
+
           <Button
-            title="⬅️ 이전 곡"
+            title={getRepeatButtonTitle()}
+            onPress={toggleRepeatMode}
+            color="#800080" // Purple color for repeat button
+            disabled={selectedTracks.length === 0}
+          />
+
+          <Button
+            title="⬅️"
             onPress={handleSkipPrevious}
-            color="#6c757d" // Grey
-            disabled={currentTrackIndex === 0 && currentTime < 3} // Disable if first song and near beginning
+            color="#6c757d"
+            disabled={!currentTrack}
           />
+
           <Button
-            title="다음 곡 ➡️"
-            onPress={handleSkipNext}
-            color="#6c757d" // Grey
-            disabled={currentTrackIndex >= selectedTracks.length - 1}
+            title={isPlaying ? '⏸️ 일시 정지' : '▶️ 재생 시작'}
+            onPress={togglePlayback}
+            disabled={!currentTrack}
+            color={isPlaying ? "#FF4500" : "#28a745"}
           />
-        </View>
+
+          <Button
+            title="➡️"
+            onPress={handleSkipNext}
+            color="#6c757d"
+            disabled={!currentTrack}
+          />
+      </View>
 
         {currentTrack && (
           <View style={styles.timeContainer}>
@@ -270,6 +310,8 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ route, navigation }) => {
           thumbTintColor="#1FB28A"
         />
 
+        
+
         {streamingUri && (
           <Video
             ref={playerRef}
@@ -283,9 +325,9 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ route, navigation }) => {
             onEnd={handleEnd}
             onLoad={handleLoad}
             onProgress={handleProgress}
-            playInBackground={true} // Allow playback in background
-            ignoreSilentSwitch="obey" // Respect silent switch
-            style={{ height: 0, width: 0 }} // Invisible
+            playInBackground={true}
+            ignoreSilentSwitch="obey"
+            style={{ height: 0, width: 0 }}
           />
         )}
       </View>
@@ -294,6 +336,13 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ route, navigation }) => {
 };
 
 const styles = StyleSheet.create({
+  controlsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    paddingVertical: 10,
+    backgroundColor: '#f0f0f0',
+  },
   container: {
     flex: 1,
     padding: 20,
@@ -322,7 +371,7 @@ const styles = StyleSheet.create({
   },
   slider: {
     height: 40,
-    width: '80%', // Use percentage for better responsiveness
+    width: '80%',
   },
   timeContainer: {
     flexDirection: 'row',
@@ -336,6 +385,10 @@ const styles = StyleSheet.create({
     minWidth: 40,
     textAlign: 'center',
   },
+  repeatButtonContainer: {
+    marginTop: 20,
+    alignItems: 'center',
+  }
 });
 
 export default PlayerScreen;
