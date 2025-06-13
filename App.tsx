@@ -28,6 +28,10 @@ import {
   LanguageProvider
 } from './context/store/LanguageContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import TrackPlayer from 'react-native-track-player';
+// import {setupPlayer} from './services/TrackPlayerService'; // Adjust path
+
+
 // import StartNotify from './StartNotify';
 
 // import { getFcmToken } from './Screen/Chat/notification/services';
@@ -90,6 +94,12 @@ const App: React.FC = () => {
     // fetchInitialUrl();
 
     setLanguage();
+
+    const setupPlayer = async () => {
+            await TrackPlayer.setupPlayer();
+    };
+
+    setupPlayer();
 
     return () => {};
   }, []);

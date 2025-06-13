@@ -20,7 +20,15 @@ import { PlaylistScreenProps } from '../model/types/TUserNavigator';
 import WrapperContainer from '../../utils/basicForm/WrapperContainer';
 import HeaderComponent from '../../utils/basicForm/HeaderComponents';
 import { RFPercentage } from 'react-native-responsive-fontsize';
-import { convertEucKrToUtf8 } from '../../utils/converEucKrToUtf8';
+import FontAwesome from 'react-native-vector-icons/FontAwesome';
+import colors from '../../styles/colors';
+import TrackPlayer, {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  State,
+  usePlaybackState,
+} from 'react-native-track-player';
+
+// import { convertEucKrToUtf8 } from '../../utils/converEucKrToUtf8';
 
 interface PlaylistItem {
   id: string;
@@ -38,6 +46,9 @@ interface PlaylistItem {
 }
 
 const PlaylistScreen: React.FC<PlaylistScreenProps> = ({ navigation }) => {
+
+  const playbackState = usePlaybackState();
+  
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [playlistStructure, setPlaylistStructure] = useState<PlaylistItem[]>([]);
   const [flatDisplayList, setFlatDisplayList] = useState<PlaylistItem[]>([]);
@@ -141,7 +152,6 @@ const PlaylistScreen: React.FC<PlaylistScreenProps> = ({ navigation }) => {
 
           // console.log('itemToMatch', itemToMatch);
           const nameMatch = itemToMatch.name?.toLowerCase().includes(lowerCaseSearchQuery);
-          
           // console.log('itemToMatch.name (lowerCase):', itemToMatch.name?.toLowerCase());
           // console.log('lowerCaseSearchQuery:', lowerCaseSearchQuery);
           // console.log('nameMatch:', nameMatch);
@@ -342,7 +352,7 @@ const PlaylistScreen: React.FC<PlaylistScreenProps> = ({ navigation }) => {
    * Handles playing the selected tracks. Navigates to `PlayerScreen`.
    */
   const handlePlaySelected = () => {
-    if (selectedTrackUris.length === 0) {
+    if (selectedTrackUris.length === 0 && playbackState.state !== State.Playing ) {
       Alert.alert('재생할 곡을 선택해주세요.');
       return;
     }
@@ -444,28 +454,45 @@ const PlaylistScreen: React.FC<PlaylistScreenProps> = ({ navigation }) => {
   }
 
   // --- Header Right Component (Language Selector) ---
-  const onPressRight = () => {
-    Alert.alert('언어 선택', '언어 선택 기능을 구현할 수 있습니다.');
-  };
+  // const onPressRight = () => {
+  //   Alert.alert('언어 선택', '언어 선택 기능을 구현할 수 있습니다.');
+  // };
 
-  const RightCustomComponent = () => {
+  // const RightCustomComponent = () => {
+  //   return (
+  //     <TouchableOpacity onPress={onPressRight}>
+  //       <View
+  //         style={{
+  //           width: RFPercentage(5),
+  //           height: RFPercentage(5),
+  //           borderColor: 'black',
+  //           borderWidth: 2,
+  //           borderRadius: RFPercentage(5) / 2,
+  //           justifyContent: 'center',
+  //           alignItems: 'center',
+  //         }}
+  //       >
+  //         <Text style={{ fontSize: RFPercentage(2), color: 'black', fontWeight: 'bold' }}>
+  //           한/A
+  //         </Text>
+  //       </View>
+  //     </TouchableOpacity>
+  //   );
+  // };
+  const LeftCustomComponent = () => {
     return (
-      <TouchableOpacity onPress={onPressRight}>
-        <View
+      <TouchableOpacity onPress= {handlePlaySelected}>
+        <FontAwesome
           style={{
-            width: RFPercentage(5),
-            height: RFPercentage(5),
-            borderColor: 'black',
-            borderWidth: 2,
-            borderRadius: RFPercentage(5) / 2,
-            justifyContent: 'center',
-            alignItems: 'center',
+            height: RFPercentage(8),
+            width: RFPercentage(10),
+            marginTop: RFPercentage(2),
+            color: colors.black,
+            fontSize: RFPercentage(5),
+            fontWeight: 'bold',
           }}
-        >
-          <Text style={{ fontSize: RFPercentage(2), color: 'black', fontWeight: 'bold' }}>
-            한/A
-          </Text>
-        </View>
+          name="arrow-left"
+        />
       </TouchableOpacity>
     );
   };
@@ -474,12 +501,14 @@ const PlaylistScreen: React.FC<PlaylistScreenProps> = ({ navigation }) => {
   return (
     <WrapperContainer containerStyle={{ paddingHorizontal: 0 }}>
       <HeaderComponent
+        isLeftView={true}
+        leftCustomView={LeftCustomComponent}
         rightPressActive={true}
         isCenterView={false}
         centerText=""
         rightText={''}
         isRightView={false}
-        rightCustomView={RightCustomComponent}
+        // rightCustomView={RightCustomComponent}
       />
       <KeyboardAvoidingView // <-- Start KeyboardAvoidingView
         style={{ flex: 1 }} // It needs to have a flex to take up available space

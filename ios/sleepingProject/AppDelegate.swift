@@ -3,6 +3,7 @@ import UIKit
 import React
 import React_RCTAppDelegate
 import ReactAppDependencyProvider
+import AVFoundation // AVFoundation 프레임워크 임포트
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -32,6 +33,17 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
       in: window,
       launchOptions: launchOptions
     )
+    
+    // --- Swift 오디오 세션 설정 코드 시작 ---
+        do {
+            let audioSession = AVAudioSession.sharedInstance()
+            try audioSession.setCategory(.playback, mode: .default, options: [])
+            try audioSession.setActive(true)
+        } catch {
+            print("Failed to set audio session category or activate: \(error.localizedDescription)")
+        }
+        // --- Swift 오디오 세션 설정 코드 끝 ---
+
 
     return true
   }
