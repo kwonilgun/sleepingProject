@@ -505,7 +505,7 @@ const PlaylistScreen: React.FC<PlaylistScreenProps> = ({ navigation }) => {
         leftCustomView={LeftCustomComponent}
         rightPressActive={true}
         isCenterView={false}
-        centerText=""
+        centerText="🎶 음악 라이브러리"
         rightText={''}
         isRightView={false}
         // rightCustomView={RightCustomComponent}
@@ -516,7 +516,7 @@ const PlaylistScreen: React.FC<PlaylistScreenProps> = ({ navigation }) => {
         keyboardVerticalOffset={Platform.OS === 'ios' ? RFPercentage(1) : 0} // Adjust this value as needed to fine-tune the offset
       >
         <View style={styles.container}>
-          <Text style={styles.playlistTitle}>🎶 음악 라이브러리</Text>
+          {/* <Text style={styles.playlistTitle}>🎶 음악 라이브러리</Text> */}
 
           {/* Search Input */}
           <TextInput
@@ -555,7 +555,7 @@ const PlaylistScreen: React.FC<PlaylistScreenProps> = ({ navigation }) => {
             <Button
               title={`선택된 곡 재생 (${selectedTrackUris.length})`}
               onPress={handlePlaySelected}
-              color="#1FB28A"
+              color= "blue"
               disabled={selectedTrackUris.length === 0}
             />
           </View>
@@ -571,7 +571,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: '#f8f8f8',
+    backgroundColor: colors.lightGrey,
   },
   loadingText: {
     fontSize: 18,
@@ -600,8 +600,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     marginBottom: 15,
     fontSize: 16,
-    backgroundColor: '#fff',
-    color: '#333',
+    // backgroundColor: '#fff',
+    color: 'black',
   },
   flatList: {
     flex: 1,
@@ -615,7 +615,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
-    backgroundColor: '#fff',
+    // backgroundColor: '#fff',
     borderRadius: 8,
     marginBottom: 8,
     paddingRight: 10,
@@ -638,7 +638,7 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     borderBottomWidth: 1,
     borderBottomColor: '#ddd',
-    backgroundColor: '#e9e9e9',
+    // backgroundColor: '#e9e9e9',
     borderRadius: 8,
     marginBottom: 8,
     paddingRight: 10,

@@ -5,6 +5,7 @@ export default {
   blue: 'blue',
   lightBlue: '#0096FF',
   grey: 'grey',
+  lightGrey: '#D3D3D3', // Added light grey
   dark_background: '#121212',
   dark_background_light: '#252525',
   dark_text: '#FCFCFC',

@@ -2963,6 +2963,8 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
+  - react-native-voice (3.2.4):
+    - React-Core
   - React-NativeModulesApple (0.79.2):
     - glog
     - hermes-engine
@@ -3583,6 +3585,8 @@ PODS:
     - Yoga
   - SocketRocket (0.7.1)
   - SwiftAudioEx (1.1.0)
+  - TextToSpeech (4.1.1):
+    - React-Core
   - Yoga (0.0.0)
 
 DEPENDENCIES:
@@ -3635,6 +3639,7 @@ DEPENDENCIES:
   - "react-native-slider (from `../node_modules/@react-native-community/slider`)"
   - react-native-track-player (from `../node_modules/react-native-track-player`)
   - react-native-video (from `../node_modules/react-native-video`)
+  - "react-native-voice (from `../node_modules/@react-native-voice/voice`)"
   - React-NativeModulesApple (from `../node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios`)
   - React-oscompat (from `../node_modules/react-native/ReactCommon/oscompat`)
   - React-perflogger (from `../node_modules/react-native/ReactCommon/reactperflogger`)
@@ -3679,6 +3684,7 @@ DEPENDENCIES:
   - RNReanimated (from `../node_modules/react-native-reanimated`)
   - RNScreens (from `../node_modules/react-native-screens`)
   - RNVectorIcons (from `../node_modules/react-native-vector-icons`)
+  - TextToSpeech (from `../node_modules/react-native-tts`)
   - Yoga (from `../node_modules/react-native/ReactCommon/yoga`)
 
 SPEC REPOS:
@@ -3807,6 +3813,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-track-player"
   react-native-video:
     :path: "../node_modules/react-native-video"
+  react-native-voice:
+    :path: "../node_modules/@react-native-voice/voice"
   React-NativeModulesApple:
     :path: "../node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios"
   React-oscompat:
@@ -3895,6 +3903,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-screens"
   RNVectorIcons:
     :path: "../node_modules/react-native-vector-icons"
+  TextToSpeech:
+    :path: "../node_modules/react-native-tts"
   Yoga:
     :path: "../node_modules/react-native/ReactCommon/yoga"
 
@@ -3973,6 +3983,7 @@ SPEC CHECKSUMS:
   react-native-slider: 89552e4381bc34e492a7b53be7ec78221bbc9896
   react-native-track-player: 82ef1756ffeea61140fea17519ecd6d64ec3cf3e
   react-native-video: 1e0df051b1d5c4bfc8532d8c8bd68428de4a4081
+  react-native-voice: f5e8eec2278451d0017eb6a30a6ccc726aca34e0
   React-NativeModulesApple: 1b5e6bf9164371771e553f744da801f5d9f5c7e5
   React-oscompat: ef5df1c734f19b8003e149317d041b8ce1f7d29c
   React-perflogger: 6fd2f6811533e9c19a61e855c3033eecbf4ad2a0
@@ -4020,6 +4031,7 @@ SPEC CHECKSUMS:
   RNVectorIcons: 32cc786d5a3c2d8e20ee5c1c7c63c2609f411eb7
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748
   SwiftAudioEx: f6aa653770f3a0d3851edaf8d834a30aee4a7646
+  TextToSpeech: 2b930ec3756afde499061f4f01ea895e1f75dccb
   Yoga: aa3de42163965879e7d68a5caaf3e1cedb2cbeb2
 
 PODFILE CHECKSUM: 5f065169dc5de7979fbab879f3094647c3681644
