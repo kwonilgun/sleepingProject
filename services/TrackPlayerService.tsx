@@ -43,6 +43,7 @@ export async function playbackService(): Promise<void> {
   });
 
   TrackPlayer.addEventListener(Event.PlaybackTrackChanged, async (data) => {
+    console.log('TrackPlayer.addEventListner data', data);
     if (data.nextTrack != null) {
       const track = (await TrackPlayer.getTrack(data.nextTrack)) as (Track & CustomTrackMetadata) | null;
       if (track) {

@@ -348,33 +348,7 @@ const PlaylistScreen: React.FC<PlaylistScreenProps> = ({ navigation }) => {
     setFlatDisplayList(updateFlatDisplayList(updatedStructure, searchQuery));
   };
 
-  /**
-   * Handles playing the selected tracks. Navigates to `PlayerScreen`.
-   */
-  const handlePlaySelected = () => {
-    if (selectedTrackUris.length === 0 && playbackState.state !== State.Playing ) {
-      Alert.alert('재생할 곡을 선택해주세요.');
-      return;
-    }
-
-    const fullPlayableFilesForPlayer: PlaylistItem[] = [];
-    const collectAllFilesForPlayer = (items: PlaylistItem[]) => {
-      items.forEach(item => {
-        if (item.type === 'file' && item.uri) {
-          fullPlayableFilesForPlayer.push(item);
-        } else if (item.type === 'folder' && item.children) {
-          collectAllFilesForPlayer(item.children);
-        }
-      });
-    };
-    collectAllFilesForPlayer(playlistStructure);
-
-    navigation.navigate('PlayerScreen', {
-      selectedTracks: selectedTrackUris,
-      playlist: fullPlayableFilesForPlayer,
-    });
-  };
-
+ 
   /**
    * Renders a single item in the FlatList, distinguishing between files and folders.
    * @param {Object} - Destructured item and index from FlatList.
@@ -479,9 +453,41 @@ const PlaylistScreen: React.FC<PlaylistScreenProps> = ({ navigation }) => {
   //     </TouchableOpacity>
   //   );
   // };
+   /**
+   * Handles playing the selected tracks. Navigates to `PlayerScreen`.
+   */
+  const handlePlaySelected = () => {
+    if (selectedTrackUris.length === 0 && playbackState.state !== State.Playing ) {
+      Alert.alert('재생할 곡을 선택해주세요.');
+      return;
+    }
+
+    const fullPlayableFilesForPlayer: PlaylistItem[] = [];
+    const collectAllFilesForPlayer = (items: PlaylistItem[]) => {
+      items.forEach(item => {
+        if (item.type === 'file' && item.uri) {
+          fullPlayableFilesForPlayer.push(item);
+        } else if (item.type === 'folder' && item.children) {
+          collectAllFilesForPlayer(item.children);
+        }
+      });
+    };
+    collectAllFilesForPlayer(playlistStructure);
+
+    navigation.navigate('PlayerScreen', {
+      selectedTracks: selectedTrackUris,
+      playlist: fullPlayableFilesForPlayer,
+    });
+  };
+
+  const goBackToPlayer = () =>{
+    console.log('goBackToPlayer');
+    // navigation.goBack();
+  };
+
   const LeftCustomComponent = () => {
     return (
-      <TouchableOpacity onPress= {handlePlaySelected}>
+      <TouchableOpacity onPress= {goBackToPlayer}>
         <FontAwesome
           style={{
             height: RFPercentage(8),
@@ -501,7 +507,7 @@ const PlaylistScreen: React.FC<PlaylistScreenProps> = ({ navigation }) => {
   return (
     <WrapperContainer containerStyle={{ paddingHorizontal: 0 }}>
       <HeaderComponent
-        isLeftView={true}
+        isLeftView={false}
         leftCustomView={LeftCustomComponent}
         rightPressActive={true}
         isCenterView={false}
@@ -594,7 +600,7 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     height: 45,
-    borderColor: '#ccc',
+    borderColor: 'black',
     borderWidth: 1,
     borderRadius: 8,
     paddingHorizontal: 15,

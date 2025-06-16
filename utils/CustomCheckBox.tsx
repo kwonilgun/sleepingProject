@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, TouchableOpacity, StyleSheet } from 'react-native';
+import { RFPercentage } from 'react-native-responsive-fontsize';
 
 interface CustomCheckBoxProps {
   value: boolean;
@@ -19,13 +20,13 @@ const CustomCheckBox: React.FC<CustomCheckBoxProps> = ({ value, onValueChange })
 
 const styles = StyleSheet.create({
   checkboxBase: {
-    width: 24,
-    height: 24,
+    width: RFPercentage(3),
+    height: RFPercentage(3),
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 4,
     borderWidth: 2,
-    borderColor: '#ccc',
+    borderColor: 'grey',
     backgroundColor: 'transparent',
   },
   checkboxChecked: {

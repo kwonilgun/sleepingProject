@@ -17,6 +17,7 @@ import {CartItem} from '../../../Redux/Cart/Reducers/cartItems';
 import {DataList} from '../../Orders/makeExpandable';
 import {IOrderInfo} from '../interface/IOrderInfo';
 import {SocketItem} from '../../../Redux/Cart/Reducers/socketItems';
+import { PlaylistItem } from '../../Player/PlayerScreen';
 // import { ISProduct } from '../../Admin/AddProductScreen';
 
 export type RootStackParamList = {
@@ -49,7 +50,13 @@ export type RootStackParamList = {
   PrivacyPolicyScreen: undefined;
   MembershipScreen: undefined;
   PlaylistScreen: undefined;
-  PlayerScreen: undefined;
+  PlayerScreen : {
+    selectedTracks: string[] ;
+    playlist: PlaylistItem[] ;
+  } ;
+
+  // PlayerScreen: undefined;
+
   // NaverLoginScreen: undefined;
   // ProductMainScreen: undefined;
   // HomeAiScreen: undefined;
@@ -108,6 +115,7 @@ export type PlayerScreenProps = {
     RootStackParamList,
     'PlayerScreen'
   >;
+  route: { params: { selectedTracks: string[] ; playlist: PlaylistItem[] } };
 };
 
 
