@@ -28,6 +28,7 @@ export default function SleepTimerFeature({ navigation }) {
 
     // 컴포넌트 언마운트 시 리스너 제거 및 자원 해제
     return () => {
+      console.log('VoiceRecognition Tts.stop ....');
       Voice.destroy().then(Voice.removeAllListeners); // 음성 인식 리스너 모두 제거 및 파괴
       Tts.stop(); // 진행 중인 TTS 중단
     };
@@ -176,7 +177,7 @@ export default function SleepTimerFeature({ navigation }) {
   };
 
   // --- 음성 상호작용 결과에 따른 처리 함수 ---
-  const handleVoiceInteractionResult = async (continueMusic) => {
+  const handleVoiceInteractionResult = async (continueMusic: boolean) => {
     if (continueMusic) {
       await TrackPlayer.play(); // 음악 재생 재개
       Alert.alert('수면모드', '음악을 계속 재생합니다.');

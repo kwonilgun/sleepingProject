@@ -30,7 +30,13 @@ export type RootStackParamList = {
   Home: {screen: string};
 
   UserMain: {screen: string};
-  ShippingNavigator: {screen: string};
+  Player:{screen: string,
+    params:{
+      selectedTracks: string[] ;
+    playlist: PlaylistItem[] ;
+    }
+
+  };
 
   AdminScreen: undefined;
   EditUsageTermScreen: undefined;

@@ -1,3 +1,4 @@
+/* eslint-disable comma-dangle */
 /* eslint-disable react-native/no-inline-styles */
 /* eslint-disable react/no-unstable-nested-components */
 import React, { useEffect, useState, useRef } from 'react';
@@ -48,7 +49,7 @@ interface PlaylistItem {
 const PlaylistScreen: React.FC<PlaylistScreenProps> = ({ navigation }) => {
 
   const playbackState = usePlaybackState();
-  
+
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [playlistStructure, setPlaylistStructure] = useState<PlaylistItem[]>([]);
   const [flatDisplayList, setFlatDisplayList] = useState<PlaylistItem[]>([]);
@@ -348,7 +349,7 @@ const PlaylistScreen: React.FC<PlaylistScreenProps> = ({ navigation }) => {
     setFlatDisplayList(updateFlatDisplayList(updatedStructure, searchQuery));
   };
 
- 
+
   /**
    * Renders a single item in the FlatList, distinguishing between files and folders.
    * @param {Object} - Destructured item and index from FlatList.
@@ -474,9 +475,12 @@ const PlaylistScreen: React.FC<PlaylistScreenProps> = ({ navigation }) => {
     };
     collectAllFilesForPlayer(playlistStructure);
 
-    navigation.navigate('PlayerScreen', {
-      selectedTracks: selectedTrackUris,
-      playlist: fullPlayableFilesForPlayer,
+    navigation.navigate('Player', {
+      screen: 'PlayerScreen',
+      params: {
+          selectedTracks: selectedTrackUris,
+          playlist: fullPlayableFilesForPlayer,
+      }
     });
   };
 

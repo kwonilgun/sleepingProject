@@ -1,11 +1,12 @@
 /* eslint-disable react-native/no-inline-styles */
 /* eslint-disable react/no-unstable-nested-components */
 // src/screens/PlayerScreen.tsx
-import React, { useState, useEffect, useMemo, useRef } from 'react'; // Import useRef
-import { Button, Text, View, StyleSheet, TouchableOpacity, Alert, Platform, PermissionsAndroid } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react'; // Import useRef
+import { Text, View, StyleSheet, TouchableOpacity, Alert, Platform, PermissionsAndroid, Modal } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { baseURL } from '../../assets/common/BaseUrl';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import colors from '../../styles/colors';
 import { RFPercentage } from 'react-native-responsive-fontsize';
 import HeaderComponent from '../../utils/basicForm/HeaderComponents';
@@ -13,11 +14,7 @@ import WrapperContainer from '../../utils/basicForm/WrapperContainer';
 import MaterialIcon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import Tts from 'react-native-tts'; // Text-to-Speech 라이브러리
-import Voice, {
-  SpeechRecognizedEvent,
-  SpeechResultsEvent,
-  SpeechErrorEvent,
-} from "@react-native-voice/voice";
+import Voice from "@react-native-voice/voice";
 
 import TrackPlayer, {
   Event,
@@ -29,7 +26,6 @@ import TrackPlayer, {
   RepeatMode as TrackPlayerRepeatMode,
 } from 'react-native-track-player';
 import { width } from '../../styles/responsiveSize';
-import RNExitApp from 'react-native-exit-app'; // RNExitApp 임포트
 import ScreenBrightness from 'react-native-screen-brightness';
 import { PlayerScreenProps } from '../model/types/TUserNavigator';
 
@@ -65,6 +61,9 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ route, navigation }) => {
   const playbackState = usePlaybackState();
   const progress = useProgress();
 
+  // route.params가 undefined일 경우, 빈 객체 {}를 기본값으로 사용
+  const { selectedTracks = [], playlist = [] } = route.params || {};
+
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
   const [repeatMode, setRepeatMode] = useState<RepeatMode>(RepeatMode.Off);
   const [volume, setVolume] = useState<number>(0.3);
@@ -77,15 +76,51 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ route, navigation }) => {
   const sleepTimerRef = useRef<NodeJS.Timeout | null>(null); // Use useRef to hold the timer ID
   const sleepTimerCountRef = useRef<number>(0); // 3회 반복을 위한 카운터
 
+  const [afterSleepTimer, setAfterSleepTimer] = useState<number>(5.0);
+  const [sleepDelay, setSleepDelay] = React.useState(0.1); // Or your initial default
+
+  // New states for fixed sleep timer options
+  const [showSleepTimerOptions, setShowSleepTimerOptions] = useState<boolean>(false);
+  const [activeSleepTimerLabel, setActiveSleepTimerLabel] = useState<string | null>(null); // e.g., "5분 후 시작"
+
   // 음성 인식 결과 저장 및 처리
   const recognizedTextRef = useRef(''); // 현재 인식된 텍스트를 저장
   const speechTimeoutRef = useRef<NodeJS.Timeout | null>(null); // 음성 인식 타임아웃 ID 저장
   const voiceResponseHandledRef = useRef(false); // 음성 응답 처리 여부 플래그
 
+  // --- 추가된 로직 시작 ---
+  useEffect(() => {
+    // route.params가 없는 경우를 대비한 안전 장치
+    if (!route.params) {
+      Alert.alert('오류', '재생할 트랙 정보가 없습니다.', [{ text: '확인', onPress: () => navigation.goBack() }]);
+      return;
+    }
+
+    const { selectedTracks, playlist } = route.params;
+
+    if (!selectedTracks || selectedTracks.length === 0) {
+      Alert.alert(
+        '오류',
+        '재생할 곡이 선택되지 않았습니다. 이전 화면으로 돌아갑니다.',
+        [{ text: '확인', onPress: () => navigation.goBack() }]
+      );
+      return;
+    }
+
+    if (!playlist || playlist.length === 0) {
+      Alert.alert(
+        '오류',
+        '플레이리스트 정보를 불러올 수 없습니다. 이전 화면으로 돌아갑니다.',
+        [{ text: '확인', onPress: () => navigation.goBack() }]
+      );
+      return;
+    }
+  }, [route.params, navigation]); // route.params와 navigation이 변경될 때마다 이 효과를 다시 실행
+
+
+
   // voice recognition
-
-
-  const { selectedTracks, playlist } = route.params;
+  // const { selectedTracks, playlist } = route.params;
   const currentUri = selectedTracks[currentTrackIndex];
   let currentTrack = playlist.find(item => item.uri === currentUri && item.type === 'file');
 
@@ -148,7 +183,6 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ route, navigation }) => {
     return () => {
       // TTS 리스너 제거
       ttsListeners.forEach(listener => listener.remove());
-     
       // Tts.stop();
       // ... 기존의 Voice 정리 코드 ...
     };
@@ -184,7 +218,7 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ route, navigation }) => {
     };
 
     const onSpeechError = (e: any) => {
-      console.error('음성 인식 오류:', e);
+      console.log('음성 인식 오류:', e);
       // if (!voiceResponseHandledRef.current) {
       //   voiceResponseHandledRef.current = true;
       //   handleVoiceInteractionResult(false);
@@ -352,6 +386,7 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ route, navigation }) => {
 
   useEffect(() => {
     const setRepeat = async () => {
+      console.log('repeatMode useEffect fired. New mode:', repeatMode);
       const mode =
         repeatMode === RepeatMode.Off
           ? TrackPlayerRepeatMode.Off
@@ -359,6 +394,7 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ route, navigation }) => {
             ? TrackPlayerRepeatMode.Track
             : TrackPlayerRepeatMode.Queue;
       await TrackPlayer.setRepeatMode(mode);
+      console.log('TrackPlayer.setRepeatMode called with:', mode);
     };
     setRepeat();
   }, [repeatMode]);
@@ -417,37 +453,35 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ route, navigation }) => {
   };
 
  const handleVoiceInteraction = async () => {
+  console.log('handleVoiceInteraction called.');
   await TrackPlayer.pause();
+  console.log('TrackPlayer paused in handleVoiceInteraction.');
 
   try {
-    // const hasPermission = await requestMicrophonePermission();
-    // if (!hasPermission) {
-    //   handleVoiceInteractionResult(false);
-    //   return;
-    // }
-
-    // 상태 초기화
     recognizedTextRef.current = '';
     voiceResponseHandledRef.current = false;
 
     if (speechTimeoutRef.current) {
       clearTimeout(speechTimeoutRef.current);
-      speechTimeoutRef.current = null; // Clear previous timeout
-
+      speechTimeoutRef.current = null;
     }
 
-    // TTS가 끝날 때까지 기다리기 위한 Promise 래퍼
-    const result = await new Promise((resolve) => {
-      Tts.speak('잠 들었나요?');
-      resolve('tts 완료');
+    console.log('Calling Tts.speak("잠 들었나요?")...');
+    // Ensure you have a way to await TTS completion or check its status
+    await new Promise<void>((resolve) => {
+        const finishListener = Tts.addEventListener('tts-finish', (event) => {
+            console.log("TTS finish event caught in handleVoiceInteraction promise:", event);
+            finishListener.remove(); // Remove listener after it fires once
+            resolve();
+        });
+        Tts.speak('잠 들었나요?');
     });
-
-    console.log('result = ', result);
-    // TTS 종료 후 음성 인식 시작
+    console.log('Tts.speak("잠 들었나요?") completed.');
+    // TTS 종료 후 음성 인식 시작 (This is handled by the tts-finish listener in useEffect)
 
   } catch (error) {
-    console.error('tts 에러:', error);
-    handleVoiceInteractionResult(false); // TTS 오류 시 음악 중단
+    console.error('TTS error in handleVoiceInteraction:', error);
+    handleVoiceInteractionResult(false);
   }
 };
 
@@ -463,16 +497,16 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ route, navigation }) => {
       // await TrackPlayer.play(); // 음악 재생 재개
       // Alert.alert('수면모드', '음악을 계속 재생합니다.');
       sleepTimerCountRef.current += 1;
-      console.log(`수면모드 반복 횟수: ${sleepTimerCountRef.current} / 3`);
+      console.log(`수면모드 반복 횟수: ${sleepTimerCountRef.current} / 5`);
 
-      if (sleepTimerCountRef.current < 3) {
+      if (sleepTimerCountRef.current < 5) {
         console.log('수면모드', `음악을 계속 재생합니다. (${sleepTimerCountRef.current}회 확인 완료)`);
         await TrackPlayer.play();
 
         // 다음 타이머 설정
         sleepTimerRef.current = setTimeout(async () => {
           await handleVoiceInteraction();
-        }, 0.1 * 60 * 1000); // 1분 후 (테스트 용이성을 위해 0.1분으로 설정)
+        }, afterSleepTimer * 60 * 1000); //  afterSleepTimer 분 후
       } else {
         // 3회 모두 "예" 응답 시 음악 중단 및 앱 종료
         Alert.alert(
@@ -487,9 +521,11 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ route, navigation }) => {
             // navigation.goBack(); // 또는 RNExitApp.exitApp();
           } }]
         );
-         await ScreenBrightness.setBrightness(0.05); // 밝기 최소로
+         await ScreenBrightness.setBrightness(0.1); // 밝기 최소로
          await TrackPlayer.stop();
         setSleepTimerActive(false);
+        setRepeatMode(RepeatMode.Off); // Update React state
+
         sleepTimerCountRef.current = 0;
       }
     } else {
@@ -512,65 +548,41 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ route, navigation }) => {
 
       await TrackPlayer.stop();
       setSleepTimerActive(false);
+      setRepeatMode(RepeatMode.Off); // Update React state
       sleepTimerCountRef.current = 0;
     }
     // setSleepTimerActive(false); // 수면 타이머 비활성화 상태로 변경
     // sleepTimerRef.current = null; // 타이머 ID 초기화
-    
-    
+
   };
 
 
-  // --- 수면 타이머 시작 함수 ---
-  const startSleepTimer = () => {
-    if (sleepTimerActive) {
-      Alert.alert('수면모드', '이미 수면모드가 활성화되어 있습니다.');
-      return;
-    }
+  const startSleepTimer = async () => {
+      console.log('startSleepTimer called');
+      if (sleepTimerActive) {
+        Alert.alert('수면모드', '이미 수면모드가 활성화되어 있습니다.');
+        return;
+      }
 
-    setSleepTimerActive(true); // 수면 타이머 활성화 상태로 변경
-    sleepTimerCountRef.current = 0; // 카운트 초기화
-    // 첫 번째 타이머 시작
-    if (playbackState.state === State.Stopped || playbackState.state === State.Paused) {
-      TrackPlayer.play();
-    }
-    sleepTimerRef.current = setTimeout(async () => {
-        await handleVoiceInteraction();
-    }, 0.1 * 60 * 1000); // 1분 후 (테스트 용이성을 위해 0.1분으로 변경)
+      setSleepTimerActive(true);
+      sleepTimerCountRef.current = 0;
+      if (playbackState.state === State.Stopped || playbackState.state === State.Paused) {
+        TrackPlayer.play();
+        console.log('TrackPlayer play called in startSleepTimer');
+      }
 
-    // Alert.alert(
-    //   '수면모드 시작',
-    //   '수면모드를 시작합니다. 1분 후에 잠들었는지 확인하는 음성 알림이 뜹니다. (총 3회 반복)',
-    //   [
-    //     {
-    //       text: '취소',
-    //       onPress: () => {
-    //         if (sleepTimerRef.current) {
-    //           clearTimeout(sleepTimerRef.current); // 타이머 취소
-    //           sleepTimerRef.current = null;
-    //           setSleepTimerActive(false);
-    //           sleepTimerCountRef.current = 0; // 카운트 초기화
-    //           Alert.alert('수면모드', '수면모드가 취소되었습니다.');
-    //         }
-    //       },
-    //       style: 'cancel',
-    //     },
-    //     {
-    //       text: '확인',
-    //       onPress: async () => {
-    //         setSleepTimerActive(true); // 수면 타이머 활성화 상태로 변경
-    //         sleepTimerCountRef.current = 0; // 카운트 초기화
-    //         // 첫 번째 타이머 시작
-    //         sleepTimerRef.current = setTimeout(async () => {
-    //           await handleVoiceInteraction();
-    //         }, 0.1 * 60 * 1000); // 1분 후 (테스트 용이성을 위해 0.1분으로 변경)
-    //         // Alert.alert('수면모드', '수면모드가 시작되었습니다. 1분 후 음성으로 잠이 들었는지 확인합니다.');
-    //       },
-    //     },
-    //   ]
-    // );
-  };
- 
+      console.log('Calling setRepeatMode(RepeatMode.RepeatAll);');
+      setRepeatMode(RepeatMode.RepeatAll); // Update React state
+
+      // Introduce a small delay before setting the timer for voice interaction
+      setTimeout(() => {
+        sleepTimerRef.current = setTimeout(async () => {
+          console.log('Sleep timer fired! Calling handleVoiceInteraction()...');
+          await handleVoiceInteraction();
+        }, afterSleepTimer * 60 * 1000); // 1 minute
+        console.log('Sleep timer set. afterSleepTimer = ', afterSleepTimer);
+      }, 500); // Wait 500ms for TrackPlayer to potentially settle
+};
 
   const handleSkipPrevious = async () => {
     const currentPosition = progress.position;
@@ -663,27 +675,6 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ route, navigation }) => {
 
   const LeftCustomComponent = () => {
     const handleGoBack = async () => {
-      // // Stop music playback
-      // await TrackPlayer.stop();
-
-      // // Reset TrackPlayer queue and state
-      // await TrackPlayer.reset();
-
-      // // Clear any active sleep timer
-      // if (sleepTimerRef.current) {
-      //   clearTimeout(sleepTimerRef.current);
-      //   sleepTimerRef.current = null;
-      // }
-      // setSleepTimerActive(false);
-      // sleepTimerCountRef.current = 0;
-
-      // // Stop any active TTS
-      // Tts.stop();
-
-      // // Stop any active Voice recognition
-      // // await Voice.destroy().then(Voice.removeAllListeners);
-
-      // // Navigate back to the previous screen
       navigation.goBack();
     };
 
@@ -704,15 +695,48 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ route, navigation }) => {
     );
   };
 
+  const rightCustomComponent = () => {
+    const selectCheckTime = async () => {
+      // navigation.goBack();
+      console.log('right click');
+      setShowSleepTimerOptions(true); // Show the sleep timer options modal
+
+    };
+
+    return (
+      <TouchableOpacity onPress={selectCheckTime}>
+        <Ionicons
+          style={{
+            height: RFPercentage(8),
+            width: RFPercentage(10),
+            marginTop: RFPercentage(3),
+            marginRight: RFPercentage(-4),
+            color: colors.black,
+            fontSize: RFPercentage(5),
+            fontWeight: 'bold',
+          }}
+          name="timer"
+        />
+      </TouchableOpacity>
+    );
+  };
+
+  const setInitialSleepDelay = async (minutes: number | null) =>{
+    console.log('setInitialSleepDelay minutes : ', minutes);
+    setAfterSleepTimer(minutes!);
+  };
+
   return (
     <WrapperContainer containerStyle={{ paddingHorizontal: 0 }}>
       <HeaderComponent
         rightPressActive={false}
-        isLeftView={true}
+        isLeftView={false}
         leftCustomView={LeftCustomComponent}
         centerText="🎵 음악 "
         containerStyle={{ paddingHorizontal: 8 }}
         isRight={false}
+        isRightView={true}
+        rightCustomView={rightCustomComponent}
       />
       <View style={styles.container}>
         <Text style={styles.title}>🎧 제목:</Text>
@@ -859,6 +883,42 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ route, navigation }) => {
           </Text>
         </TouchableOpacity>
 
+{/* Sleep Timer Options Modal */}
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={showSleepTimerOptions}
+          onRequestClose={() => setShowSleepTimerOptions(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.sleepTimerOptionsContainer}>
+              <Text style={styles.sleepTimerOptionsTitle}>수면 체크 시간:</Text>
+              {[0.1, 5, 10, 15, 20, 30].map((minutes) => (
+                <TouchableOpacity
+                  key={minutes}
+                  style={[
+                    styles.sleepTimerOptionButton,
+                    activeSleepTimerLabel === `${minutes}분 후 시작` && styles.sleepTimerOptionButtonActive,
+                  ]}
+                  onPress={() => setInitialSleepDelay(minutes)}
+                >
+                  <Text style={styles.sleepTimerOptionButtonText}>{minutes}분</Text>
+                  {afterSleepTimer === minutes && (
+                  <MaterialIcon name="check" size={24} color="green" style={styles.checkmarkIcon} />
+              )}
+                </TouchableOpacity>
+              ))}
+
+              <TouchableOpacity
+                style={[styles.sleepTimerOptionButton, styles.sleepTimerOptionButtonClose]}
+                onPress={() => setShowSleepTimerOptions(false)} // Just close modal
+              >
+                <Text style={styles.sleepTimerOptionButtonText}>닫기</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
       </View>
     </WrapperContainer>
   );
@@ -968,6 +1028,72 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginLeft: 10,
   },
+
+  activeTimerLabel: {
+    marginTop: 15,
+    fontSize: RFPercentage(1.8),
+    color: '#6a0dad',
+    textAlign: 'center',
+    fontWeight: 'bold',
+  },
+  // Styles for Sleep Timer Options Modal
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  sleepTimerOptionsContainer: {
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 20,
+    width: '80%',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  sleepTimerOptionsTitle: {
+    fontSize: RFPercentage(2.5),
+    fontWeight: 'bold',
+    marginBottom: 20,
+    color: '#333',
+  },
+  sleepTimerOptionButton: {
+    backgroundColor: '#4CAF50', // Green
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 8,
+    marginVertical: 8,
+    width: '80%',
+    alignItems: 'center',
+  },
+  sleepTimerOptionButtonActive: {
+    backgroundColor: '#FFA500', // Orange when active
+    borderWidth: 2,
+    borderColor: '#FFD700',
+  },
+  sleepTimerOptionButtonText: {
+    color: 'white',
+    fontSize: RFPercentage(2.2),
+    fontWeight: 'bold',
+  },
+  sleepTimerOptionButtonCancel: {
+    backgroundColor: '#dc3545', // Red for cancel
+    marginTop: 20,
+  },
+  sleepTimerOptionButtonClose: {
+    backgroundColor: '#6c757d', // Grey for close
+  },
+  checkmarkIcon: {
+    position: 'absolute', // Position the checkmark
+    fontSize: RFPercentage(3),
+    right: 15, // Adjust as needed
+    top: 10,
+  },
 });
+
 
 export default PlayerScreen;

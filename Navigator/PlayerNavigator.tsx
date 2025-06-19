@@ -15,22 +15,20 @@ import React from 'react';
 
 import {createStackNavigator} from '@react-navigation/stack';
 import {RootStackParamList} from '../Screens/model/types/TUserNavigator';
-import PlaylistScreen from '../Screens/Player/PlaylistScreen';
+// import PlaylistScreen from '../Screens/Player/PlaylistScreen';
 import PlayerScreen from '../Screens/Player/PlayerScreen';
-// import ProductMainScreen from '../Screen/Products/ProductMainScreen';
-// import ProductDetailScreen from '../Screen/Products/ProductDetailScreen';
-// import HomeAiScreen from '../Screen/Products/HomeAiScreen';
+
 
 // 2024-02-14 : 버그 Fix, RootStackParamList 를 추가함. 타입을 지정
 const Stack = createStackNavigator<RootStackParamList>();
 
 function MyStack() {
-  //   const {state} = useAuth();
-  console.log('HomeNavigator....')
+  
+  console.log('PlayerNavigator....')
 
   return (
     <Stack.Navigator
-      initialRouteName="PlaylistScreen"
+      initialRouteName="PlayerScreen"
       screenOptions={{
         headerStyle: {
           backgroundColor: '#e6efd0',
@@ -44,8 +42,8 @@ function MyStack() {
         },
       }}>
       <Stack.Screen
-        name="PlaylistScreen"
-        component={PlaylistScreen}
+        name="PlayerScreen"
+        component={PlayerScreen}
         options={({navigation, route}) => ({
           headerShown: false,
           headerLeft: () => null,
@@ -57,8 +55,8 @@ function MyStack() {
       />
 
       {/* <Stack.Screen
-        name="PlayerScreen"
-        component={PlayerScreen}
+        name="PlaylistScreen"
+        component={PlaylistScreen}
         options={({navigation, route}) => ({
           headerShown: false,
           headerLeft: () => null,
@@ -84,6 +82,6 @@ function MyStack() {
   );
 }
 
-export default function HomeNavigator() {
+export default function PlayerNavigator() {
   return <MyStack />;
 }
