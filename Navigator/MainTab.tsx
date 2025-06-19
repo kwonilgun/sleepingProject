@@ -18,6 +18,7 @@ import notifee from '@notifee/react-native';
 // import SalesNavigator from './Admin/SalesNavigator';
 import { useFocusEffect } from '@react-navigation/native';
 import PlayerNavigator from './PlayerNavigator';
+import FavoriteNavigator from './FavoriteNavigator';
 
 
 
@@ -26,6 +27,7 @@ const Tab = createBottomTabNavigator<RootTabParamList>();
 type RootTabParamList = {
   Home: undefined;
   Player: undefined;
+  Favorite: undefined;
   UserMain: undefined;
   Admin: undefined;
   ShoppingCart: undefined;
@@ -98,6 +100,17 @@ const MainTab: React.FC<{initialUrl: string | null}> = ({initialUrl}) => {
           }}
         />
       )}
+
+      {isAuthenticated && (
+        <Tab.Screen
+          name="Favorite"
+          component={FavoriteNavigator}
+          options={{
+            tabBarIcon: ({color}) => <TabIcon name="heart" color={color} />,
+          }}
+        />
+      )}
+
 
 
       {/* {(isAuthenticated && !isAdmin) && (

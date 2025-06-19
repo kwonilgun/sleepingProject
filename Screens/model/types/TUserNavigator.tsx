@@ -30,10 +30,15 @@ export type RootStackParamList = {
   Home: {screen: string};
 
   UserMain: {screen: string};
+  Favorite: {screen: string,
+    parmas: {
+      favoritedTracks: PlaylistItem[]
+    }
+  };
   Player:{screen: string,
     params:{
       selectedTracks: string[] ;
-    playlist: PlaylistItem[] ;
+      playlist: PlaylistItem[] ;
     }
 
   };
@@ -60,29 +65,9 @@ export type RootStackParamList = {
     selectedTracks: string[] ;
     playlist: PlaylistItem[] ;
   } ;
+  FavoriteScreen: { favoritedTracks: PlaylistItem[] }; // Add this line
 
-  // PlayerScreen: undefined;
-
-  // NaverLoginScreen: undefined;
-  // ProductMainScreen: undefined;
-  // HomeAiScreen: undefined;
-  // ProductDetailScreen: undefined;
-  // CartMainScreen: undefined;
-  // OrderListScreen: {items: DataList};
-  // OrderHistoryScreen: {items: DataList};
-  // OrderDetailScreen: {
-  //   item: IOrderInfo;
-  //   actionFt: (id: string, props: any) => void;
-  //   orders: DataList;
-  // };
-  // OrderChangeScreen: {
-  //   item: IOrderInfo;
-  //   actionFt: (id: string, props: any) => void;
-  //   orders: DataList;
-  // };
-  // OrderTotalChangeScreen: undefined;
-  // ChatMainScreen: undefined;
-  // ChatRegisterScreen: undefined;
+ 
 };
 
 // 2024-11-16 : Admin 추가
@@ -124,6 +109,13 @@ export type PlayerScreenProps = {
   route: { params: { selectedTracks: string[] ; playlist: PlaylistItem[] } };
 };
 
+export type FavoriteScreenProps = {
+  navigation: StackNavigationProp<
+    RootStackParamList,
+    'FavoriteScreen'
+  >;
+  route: { params: {favoritedTracks: PlaylistItem[] } };
+};
 
 
 export type EmailLoginScreenProps = {

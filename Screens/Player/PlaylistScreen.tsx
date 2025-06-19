@@ -1,7 +1,7 @@
 /* eslint-disable comma-dangle */
 /* eslint-disable react-native/no-inline-styles */
 /* eslint-disable react/no-unstable-nested-components */
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -28,6 +28,8 @@ import TrackPlayer, {
   State,
   usePlaybackState,
 } from 'react-native-track-player';
+import AsyncStorage from '@react-native-async-storage/async-storage'; // Import AsyncStorage for persistence
+import { useFocusEffect } from '@react-navigation/native';
 
 // import { convertEucKrToUtf8 } from '../../utils/converEucKrToUtf8';
 
@@ -44,10 +46,12 @@ interface PlaylistItem {
   isDirectoryOpen?: boolean;
   children?: PlaylistItem[];
   depth?: number;
+  isFavorite?: boolean; // Add isFavorite property
 }
 
-const PlaylistScreen: React.FC<PlaylistScreenProps> = ({ navigation }) => {
+const FAVORITE_TRACKS_KEY = '@favoriteTracks'; // Key for AsyncStorage
 
+const PlaylistScreen: React.FC<PlaylistScreenProps> = ({ navigation }) => {
   const playbackState = usePlaybackState();
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -58,40 +62,54 @@ const PlaylistScreen: React.FC<PlaylistScreenProps> = ({ navigation }) => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  useEffect(() => {
-    console.log('PlaylistScreen is loading...');
-    const fetchPlaylistStructure = async () => {
-      try {
-        const res = await axios.get<PlaylistItem[]>(`${baseURL}stream/playlist/db`);
+  // New state for managing favorite track URIs
+  const [favoriteTrackUris, setFavoriteTrackUris] = useState<string[]>([]);
 
-        const initializeItems = (items: PlaylistItem[]): PlaylistItem[] => {
-          return items.map(item => {
-            const newItem = { ...item, isSelected: false, isDirectoryOpen: false };
-            if (item.type === 'folder' && item.children) {
-              newItem.children = initializeItems(item.children);
-            }
-            return newItem;
-          });
-        };
+  useFocusEffect(
+    useCallback(() => {
+      console.log('PlaylistScreen is loading...');
+      const fetchPlaylistStructureAndFavorites = async () => {
+        try {
+          setIsLoading(true);
+          // Fetch playlist structure
+          const res = await axios.get<PlaylistItem[]>(`${baseURL}stream/playlist/db`);
 
-        console.log('Playlist res = ', res.data);
-        const initialStructure = initializeItems(res.data);
-        console.log('Playlist initialStructure = ', initialStructure);
+          // Fetch favorite tracks from AsyncStorage
+          const storedFavorites = await AsyncStorage.getItem(FAVORITE_TRACKS_KEY);
+          const initialFavoriteUris = storedFavorites ? JSON.parse(storedFavorites) : [];
+          setFavoriteTrackUris(initialFavoriteUris);
 
-        setPlaylistStructure(initialStructure);
-        // Initial load: no search query, so it will respect isDirectoryOpen
-        const result = updateFlatDisplayList(initialStructure, '', 0);
-        setFlatDisplayList(result);
-        setIsLoading(false);
-      } catch (e) {
-        console.error('Failed to fetch playlist structure:', e);
-        setIsLoading(false);
-        Alert.alert('오류', '재생 목록을 불러오지 못했습니다.');
-      }
-    };
+          const initializeItems = (items: PlaylistItem[]): PlaylistItem[] => {
+            return items.map(item => {
+              const newItem = {
+                ...item,
+                isSelected: false,
+                isDirectoryOpen: false,
+                isFavorite: item.type === 'file' && item.uri ? initialFavoriteUris.includes(item.uri) : false, // Set isFavorite based on stored data
+              };
+              if (item.type === 'folder' && item.children) {
+                newItem.children = initializeItems(item.children);
+              }
+              return newItem;
+            });
+          };
 
-    fetchPlaylistStructure();
-  }, []);
+          const initialStructure = initializeItems(res.data);
+          setPlaylistStructure(initialStructure);
+
+          const result = updateFlatDisplayList(initialStructure, '', 0);
+          setFlatDisplayList(result);
+        } catch (e) {
+          console.error('Failed to fetch playlist structure or favorites:', e);
+          Alert.alert('오류', '재생 목록 또는 즐겨찾기를 불러오지 못했습니다.');
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      fetchPlaylistStructureAndFavorites();
+    }, []),
+  );
 
   useEffect(() => {
     // `areAllSelected`는 현재 flatDisplayList에 표시되는 모든 파일이 선택되었는지 기준으로 판단합니다.
@@ -114,7 +132,6 @@ const PlaylistScreen: React.FC<PlaylistScreenProps> = ({ navigation }) => {
       clearTimeout(searchTimeoutRef.current);
     }
     searchTimeoutRef.current = setTimeout(() => {
-      // Pass the current playlistStructure and searchQuery
       setFlatDisplayList(updateFlatDisplayList(playlistStructure, searchQuery));
     }, 300);
 
@@ -123,7 +140,50 @@ const PlaylistScreen: React.FC<PlaylistScreenProps> = ({ navigation }) => {
         clearTimeout(searchTimeoutRef.current);
       }
     };
-  }, [searchQuery, playlistStructure]); // Depend on playlistStructure too for full re-evaluation
+  }, [searchQuery, playlistStructure]);
+
+  /**
+   * Persists favorite track URIs to AsyncStorage.
+   */
+  const saveFavoriteTracks = async (uris: string[]) => {
+    try {
+      await AsyncStorage.setItem(FAVORITE_TRACKS_KEY, JSON.stringify(uris));
+      console.log('Favorite tracks saved successfully.');
+    } catch (error) {
+      console.error('Error saving favorite tracks:', error);
+    }
+  };
+
+  /**
+   * Toggles the favorite status of a specific music file.
+   * @param {string} id - The unique ID (path) of the track to toggle.
+   */
+  const toggleFavoriteTrack = (id: string) => {
+    const updateRecursive = (items: PlaylistItem[]): PlaylistItem[] => {
+      return items.map(item => {
+        if (item.type === 'file' && item.id === id) {
+          const newFavoriteStatus = !item.isFavorite;
+          // Update favoriteTrackUris state
+          setFavoriteTrackUris(prevUris => {
+            const updatedUris = newFavoriteStatus
+              ? [...prevUris, item.uri!] // Add URI if favoriting
+              : prevUris.filter(uri => uri !== item.uri); // Remove URI if unfavoriting
+            saveFavoriteTracks(updatedUris); // Persist updated favorites
+            return updatedUris;
+          });
+          return { ...item, isFavorite: newFavoriteStatus };
+        }
+        if (item.type === 'folder' && item.children) {
+          return { ...item, children: updateRecursive(item.children) };
+        }
+        return item;
+      });
+    };
+
+    const updatedStructure = updateRecursive(playlistStructure);
+    setPlaylistStructure(updatedStructure);
+    setFlatDisplayList(updateFlatDisplayList(updatedStructure, searchQuery));
+  };
 
   /**
    * 계층적 재생 목록 구조를 평탄화하여 FlatList 렌더링에 사용합니다.
@@ -141,21 +201,14 @@ const PlaylistScreen: React.FC<PlaylistScreenProps> = ({ navigation }) => {
   ): PlaylistItem[] => {
     let flattened: PlaylistItem[] = [];
     const lowerCaseSearchQuery = currentSearchQuery.toLowerCase();
-    const hasSearchQuery = lowerCaseSearchQuery.length > 0; // 검색어가 있는지 여부 확인
-
-    // console.log('lowerCaseSearchQuery = ', lowerCaseSearchQuery);
-    // console.log('structure', structure);
+    const hasSearchQuery = lowerCaseSearchQuery.length > 0;
 
     structure.forEach(item => {
       if (item) {
         const matchesSearch = (itemToMatch: PlaylistItem) => {
-          if (!hasSearchQuery) return true; // 검색어가 없으면 모든 항목 매치
+          if (!hasSearchQuery) return true;
 
-          // console.log('itemToMatch', itemToMatch);
           const nameMatch = itemToMatch.name?.toLowerCase().includes(lowerCaseSearchQuery);
-          // console.log('itemToMatch.name (lowerCase):', itemToMatch.name?.toLowerCase());
-          // console.log('lowerCaseSearchQuery:', lowerCaseSearchQuery);
-          // console.log('nameMatch:', nameMatch);
 
           if (itemToMatch.type === 'file') {
             const titleMatch = itemToMatch.title
@@ -166,7 +219,7 @@ const PlaylistScreen: React.FC<PlaylistScreenProps> = ({ navigation }) => {
               : false;
             return nameMatch || titleMatch || artistMatch;
           }
-          return nameMatch; // 폴더는 이름만 검색
+          return nameMatch;
         };
 
         const sortedChildren =
@@ -178,38 +231,23 @@ const PlaylistScreen: React.FC<PlaylistScreenProps> = ({ navigation }) => {
               })
             : [];
 
-        // 자식 항목 중 검색어와 일치하는 항목이 있는지 미리 확인
-        // 이 로직은 `updateFlatDisplayList`가 재귀적으로 호출된 후 자식 항목이 반환되었을 때 정확히 작동합니다.
         const childMatches =
           item.type === 'folder'
             ? updateFlatDisplayList(sortedChildren, currentSearchQuery, currentDepth + 1)
             : [];
 
-        // 현재 항목이 검색어에 일치하는지 여부
         const currentItemMatchesSearch = matchesSearch(item);
 
-        // 표시할지 결정하는 조건:
-        // 1. 현재 항목이 검색어에 일치하는 경우
-        // 2. 검색어는 없지만, 폴더가 열려 있는 경우
-        // 3. 검색어는 없지만, 자식 항목 중 매칭되는 것이 있는 경우 (이 경우는 `childMatches.length > 0`와 연결됨)
-        // 4. 검색어가 있고, 자식 항목 중 매칭되는 것이 있는 경우 (이 경우 폴더를 "보여주기 위해" 포함시킴)
         const shouldIncludeItem = currentItemMatchesSearch || (item.type === 'folder' && childMatches.length > 0);
-
 
         if (shouldIncludeItem) {
           flattened.push({ ...item, depth: currentDepth });
         }
 
-
-        // 자식 항목을 추가할지 결정하는 조건:
-        // 1. 검색어가 없는 경우: 폴더가 isDirectoryOpen 상태인 경우에만 자식을 추가.
-        // 2. 검색어가 있는 경우: 해당 폴더가 열려있거나, 자식 항목 중 매칭되는 것이 있다면 자식을 추가.
-        //    (이는 검색어가 있는 경우 매칭되는 항목의 부모 폴더가 자동으로 "열린" 것처럼 보이게 합니다.)
         const shouldIncludeChildren =
           item.type === 'folder' &&
-          ((!hasSearchQuery && item.isDirectoryOpen) || // 검색어가 없고 폴더가 열려있을 때
-            (hasSearchQuery && (item.isDirectoryOpen || childMatches.length > 0))); // 검색어가 있고 (폴더가 열려있거나 자식 매칭이 있을 때)
-
+          ((!hasSearchQuery && item.isDirectoryOpen) ||
+            (hasSearchQuery && (item.isDirectoryOpen || childMatches.length > 0)));
 
         if (shouldIncludeChildren) {
           flattened = flattened.concat(childMatches);
@@ -219,7 +257,6 @@ const PlaylistScreen: React.FC<PlaylistScreenProps> = ({ navigation }) => {
 
     return flattened;
   };
-
 
   /**
    * Toggles the `isSelected` state of a specific music file and updates selected tracks.
@@ -255,7 +292,6 @@ const PlaylistScreen: React.FC<PlaylistScreenProps> = ({ navigation }) => {
     collectSelectedUris(updatedStructure);
     setSelectedTrackUris(newSelectedUris);
 
-    // Pass the current searchQuery to updateFlatDisplayList
     setFlatDisplayList(updateFlatDisplayList(updatedStructure, searchQuery));
   };
 
@@ -277,7 +313,6 @@ const PlaylistScreen: React.FC<PlaylistScreenProps> = ({ navigation }) => {
     };
     const updatedStructure = toggleRecursive(playlistStructure);
     setPlaylistStructure(updatedStructure);
-    // Pass the current searchQuery to updateFlatDisplayList
     setFlatDisplayList(updateFlatDisplayList(updatedStructure, searchQuery));
   };
 
@@ -285,17 +320,14 @@ const PlaylistScreen: React.FC<PlaylistScreenProps> = ({ navigation }) => {
    * Selects all playable tracks currently visible in the FlatList based on the search query.
    */
   const selectAllTracks = () => {
-    // 현재 flatDisplayList에 표시되는 파일 항목만 필터링합니다.
     const filesToSelect = flatDisplayList.filter(item => item.type === 'file' && item.uri);
-    const urisToSelect = new Set(filesToSelect.map(file => file.uri!)); // 중복 방지를 위해 Set 사용
+    const urisToSelect = new Set(filesToSelect.map(file => file.uri!));
 
     const updateRecursive = (items: PlaylistItem[]): PlaylistItem[] => {
       return items.map(item => {
-        // 현재 표시되는 파일의 URI가 urisToSelect에 포함되어 있다면 선택
         if (item.type === 'file' && item.uri && urisToSelect.has(item.uri)) {
           return { ...item, isSelected: true };
         }
-        // 그 외의 파일은 선택 해제 (이전 선택 상태를 초기화)
         if (item.type === 'file' && item.uri && !urisToSelect.has(item.uri)) {
           return { ...item, isSelected: false };
         }
@@ -309,7 +341,6 @@ const PlaylistScreen: React.FC<PlaylistScreenProps> = ({ navigation }) => {
     const updatedStructure = updateRecursive(playlistStructure);
     setPlaylistStructure(updatedStructure);
 
-    // 새롭게 선택된 URI 목록을 flatDisplayList에서 재구성
     const newSelectedUris: string[] = [];
     const collectSelectedUris = (items: PlaylistItem[]) => {
       items.forEach(item => {
@@ -323,7 +354,6 @@ const PlaylistScreen: React.FC<PlaylistScreenProps> = ({ navigation }) => {
     collectSelectedUris(updatedStructure);
     setSelectedTrackUris(newSelectedUris);
 
-    // 변경된 구조를 바탕으로 화면을 업데이트 (검색어 유지)
     setFlatDisplayList(updateFlatDisplayList(updatedStructure, searchQuery));
   };
 
@@ -345,10 +375,8 @@ const PlaylistScreen: React.FC<PlaylistScreenProps> = ({ navigation }) => {
     const updatedStructure = updateRecursive(playlistStructure);
     setPlaylistStructure(updatedStructure);
     setSelectedTrackUris([]);
-    // Pass the current searchQuery to updateFlatDisplayList
     setFlatDisplayList(updateFlatDisplayList(updatedStructure, searchQuery));
   };
-
 
   /**
    * Renders a single item in the FlatList, distinguishing between files and folders.
@@ -358,9 +386,9 @@ const PlaylistScreen: React.FC<PlaylistScreenProps> = ({ navigation }) => {
     const indentation = item.depth ? item.depth * 20 : 0;
 
     const displayLabel =
-    item.type === 'file' && item.name
-      ? item.name.replace(/\.mp3$/i, '')  // .mp3 확장자 제거 (대소문자 구분 없이)
-      : item.name;
+      item.type === 'file' && item.name
+        ? item.name.replace(/\.mp3$/i, '')
+        : item.name;
 
     if (item.type === 'folder') {
       return (
@@ -376,8 +404,6 @@ const PlaylistScreen: React.FC<PlaylistScreenProps> = ({ navigation }) => {
       );
     } else {
       // type === 'file'
-      // const artistText = item.artist ? ` - ${item.artist}` : '';
-      const artistText = '';
       return (
         <View style={[styles.playlistItemContainer, { paddingLeft: 10 + indentation }]}>
           <CustomCheckBox
@@ -386,8 +412,17 @@ const PlaylistScreen: React.FC<PlaylistScreenProps> = ({ navigation }) => {
           />
           <Text style={styles.playlistItemText} numberOfLines={1}>
             {displayLabel}
-            {artistText}
           </Text>
+          <TouchableOpacity
+            onPress={() => toggleFavoriteTrack(item.id)}
+            style={styles.favoriteButton}
+          >
+            <FontAwesome
+              name={item.isFavorite ? 'star' : 'star-o'}
+              size={RFPercentage(2.5)}
+              color={item.isFavorite ? colors.lightBlue : colors.grey}
+            />
+          </TouchableOpacity>
         </View>
       );
     }
@@ -428,37 +463,11 @@ const PlaylistScreen: React.FC<PlaylistScreenProps> = ({ navigation }) => {
     );
   }
 
-  // --- Header Right Component (Language Selector) ---
-  // const onPressRight = () => {
-  //   Alert.alert('언어 선택', '언어 선택 기능을 구현할 수 있습니다.');
-  // };
-
-  // const RightCustomComponent = () => {
-  //   return (
-  //     <TouchableOpacity onPress={onPressRight}>
-  //       <View
-  //         style={{
-  //           width: RFPercentage(5),
-  //           height: RFPercentage(5),
-  //           borderColor: 'black',
-  //           borderWidth: 2,
-  //           borderRadius: RFPercentage(5) / 2,
-  //           justifyContent: 'center',
-  //           alignItems: 'center',
-  //         }}
-  //       >
-  //         <Text style={{ fontSize: RFPercentage(2), color: 'black', fontWeight: 'bold' }}>
-  //           한/A
-  //         </Text>
-  //       </View>
-  //     </TouchableOpacity>
-  //   );
-  // };
-   /**
+  /**
    * Handles playing the selected tracks. Navigates to `PlayerScreen`.
    */
   const handlePlaySelected = () => {
-    if (selectedTrackUris.length === 0 && playbackState.state !== State.Playing ) {
+    if (selectedTrackUris.length === 0 && playbackState.state !== State.Playing) {
       Alert.alert('재생할 곡을 선택해주세요.');
       return;
     }
@@ -478,20 +487,45 @@ const PlaylistScreen: React.FC<PlaylistScreenProps> = ({ navigation }) => {
     navigation.navigate('Player', {
       screen: 'PlayerScreen',
       params: {
-          selectedTracks: selectedTrackUris,
-          playlist: fullPlayableFilesForPlayer,
+        selectedTracks: selectedTrackUris,
+        playlist: fullPlayableFilesForPlayer,
       }
     });
   };
 
-  const goBackToPlayer = () =>{
-    console.log('goBackToPlayer');
-    // navigation.goBack();
+  const goBackToPlayer = () => {
+    navigation.goBack(); // Navigate back to the previous screen (presumably the Player)
+  };
+
+  const navigateToFavorites = () => {
+    // We need to pass the actual favorite PlaylistItem objects to the FavoriteScreen
+    // so it can render details and play them.
+    const allFiles: PlaylistItem[] = [];
+    const collectAllFiles = (items: PlaylistItem[]) => {
+        items.forEach(item => {
+            if (item.type === 'file') {
+                allFiles.push(item);
+            } else if (item.type === 'folder' && item.children) {
+                collectAllFiles(item.children);
+            }
+        });
+    };
+    collectAllFiles(playlistStructure);
+
+    // Filter all files to get only the favorited ones
+    const favoritedFiles = allFiles.filter(file => favoriteTrackUris.includes(file.uri!));
+
+    navigation.navigate('Player', {
+      screen: 'FavoriteScreen', // Assuming 'FavoriteScreen' is a screen within your 'Player' navigator
+      params: {
+        favoritedTracks: favoritedFiles,
+      },
+    });
   };
 
   const LeftCustomComponent = () => {
     return (
-      <TouchableOpacity onPress= {goBackToPlayer}>
+      <TouchableOpacity onPress={goBackToPlayer}>
         <FontAwesome
           style={{
             height: RFPercentage(8),
@@ -507,27 +541,38 @@ const PlaylistScreen: React.FC<PlaylistScreenProps> = ({ navigation }) => {
     );
   };
 
+  const RightCustomComponent = () => {
+    return (
+      <TouchableOpacity onPress={navigateToFavorites}>
+        <FontAwesome
+          name="star"
+          size={RFPercentage(3.5)}
+          color= {colors.lightBlue}
+          style={{ marginRight: 10, marginTop: RFPercentage(2) }}
+        />
+      </TouchableOpacity>
+    );
+  };
+
   // --- Main Render ---
   return (
     <WrapperContainer containerStyle={{ paddingHorizontal: 0 }}>
       <HeaderComponent
         isLeftView={false}
         leftCustomView={LeftCustomComponent}
-        rightPressActive={true}
+        rightPressActive={false}
         isCenterView={false}
         centerText="🎶 음악 라이브러리"
-        rightText={''}
+        isRight = {false}
         isRightView={false}
-        // rightCustomView={RightCustomComponent}
+        rightCustomView={RightCustomComponent} // Add the new RightCustomComponent
       />
-      <KeyboardAvoidingView // <-- Start KeyboardAvoidingView
-        style={{ flex: 1 }} // It needs to have a flex to take up available space
-        behavior={Platform.OS === 'ios' ? 'height' : 'height'} // 'height' or 'position' might work for Android
-        keyboardVerticalOffset={Platform.OS === 'ios' ? RFPercentage(1) : 0} // Adjust this value as needed to fine-tune the offset
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'} // Changed to 'padding' for better iOS behavior with TextInput
+        keyboardVerticalOffset={Platform.OS === 'ios' ? RFPercentage(1) : 0}
       >
         <View style={styles.container}>
-          {/* <Text style={styles.playlistTitle}>🎶 음악 라이브러리</Text> */}
-
           {/* Search Input */}
           <TextInput
             style={styles.searchInput}
@@ -565,13 +610,12 @@ const PlaylistScreen: React.FC<PlaylistScreenProps> = ({ navigation }) => {
             <Button
               title={`선택된 곡 재생 (${selectedTrackUris.length})`}
               onPress={handlePlaySelected}
-              color= "blue"
+              color="blue"
               disabled={selectedTrackUris.length === 0}
             />
           </View>
         </View>
       </KeyboardAvoidingView>
-
     </WrapperContainer>
   );
 };
@@ -610,7 +654,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     marginBottom: 15,
     fontSize: 16,
-    // backgroundColor: '#fff',
     color: 'black',
   },
   flatList: {
@@ -625,7 +668,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
-    // backgroundColor: '#fff',
     borderRadius: 8,
     marginBottom: 8,
     paddingRight: 10,
@@ -642,13 +684,16 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     color: '#444',
   },
+  favoriteButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
   folderItemContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 15,
     borderBottomWidth: 1,
     borderBottomColor: '#ddd',
-    // backgroundColor: '#e9e9e9',
     borderRadius: 8,
     marginBottom: 8,
     paddingRight: 10,
