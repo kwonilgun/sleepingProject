@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-shadow */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { useEffect, useCallback } from 'react';
@@ -11,7 +12,7 @@ interface UseVoiceRecognitionProps {
   voiceResponseHandledRef: React.MutableRefObject<boolean>;
   handleVoiceInteractionResult: (continueMusic: boolean) => Promise<void>;
   Tts: typeof tts;
-  Voice: typeof Voice;
+  // Voice: typeof Voice;
   Alert: typeof Alert;
 }
 
@@ -21,7 +22,7 @@ export const useVoiceRecognition = ({
   voiceResponseHandledRef,
   handleVoiceInteractionResult,
   Tts,
-  Voice,
+  // Voice,
   Alert,
 }: UseVoiceRecognitionProps) => {
 
@@ -47,22 +48,24 @@ export const useVoiceRecognition = ({
     return true;
   }, []);
 
-  const startVoiceRecognition = useCallback(async () => {
-    try {
-      await Voice.start('ko-KR');
+  // const startVoiceRecognition = useCallback(async () => {
+  //   try {
+  //     await Voice.start('ko-KR');
 
-      speechTimeoutRef.current = setTimeout(() => {
-        if (!voiceResponseHandledRef.current) {
-          Voice.stop().then(() => {
-            handleVoiceInteractionResult(false);
-          });
-        }
-      }, 7000);
-    } catch (error) {
-      console.error('음성 상호작용 시작 오류:', error);
-      handleVoiceInteractionResult(false);
-    }
-  }, [Voice, speechTimeoutRef, voiceResponseHandledRef, handleVoiceInteractionResult]);
+  //     speechTimeoutRef.current = setTimeout(() => {
+  //       if (!voiceResponseHandledRef.current) {
+  //         Voice.stop().then(() => {
+  //           handleVoiceInteractionResult(false);
+  //         });
+  //       }
+  //     }, 7000);
+  //   } catch (error) {
+  //     console.error('음성 상호작용 시작 오류:', error);
+  //     handleVoiceInteractionResult(false);
+  //   }
+  // }, [Voice, speechTimeoutRef, voiceResponseHandledRef, handleVoiceInteractionResult]);
+
+  
 
 
   useEffect(() => {
@@ -80,11 +83,33 @@ export const useVoiceRecognition = ({
       Tts.addEventListener('tts-start', () => console.log('TTS 시작')),
       Tts.addEventListener('tts-progress', (event) => console.log("progress", event)),
       Tts.addEventListener('tts-finish', (event) => {
-        console.log("finish", event);
+        console.log('useVoiceRecognition, finish event = ', event);
         startVoiceRecognition();
       }),
       Tts.addEventListener('tts-cancel', (event) => console.log("cancel", event)),
     ];
+
+    const startVoiceRecognition = async () => {
+
+        console.log('startVoiceRecognition, .....');
+
+        try {
+          await Voice.start('ko-KR');
+
+            // 7초 타임아웃 설정
+            speechTimeoutRef.current = setTimeout(() => {
+              if (!voiceResponseHandledRef.current) {
+                console.log('<<<<<<<음성 인식 타임아웃>>>>>>>');
+                Voice.stop().then(() => {
+                  handleVoiceInteractionResult(false);
+                });
+              }
+            }, 7000);
+        } catch (error) {
+          console.error('음성 상호작용 시작 오류:', error);
+          handleVoiceInteractionResult(false);
+        }
+    };
 
     const onSpeechResults = (e: any) => {
       if (e.value && e.value.length > 0 && !voiceResponseHandledRef.current) {
@@ -132,7 +157,7 @@ export const useVoiceRecognition = ({
         clearTimeout(speechTimeoutRef.current);
       }
     };
-  }, [Tts, Voice, recognizedTextRef, speechTimeoutRef, voiceResponseHandledRef, handleVoiceInteractionResult, startVoiceRecognition]);
+  }, [Tts, Voice, recognizedTextRef, speechTimeoutRef, voiceResponseHandledRef, handleVoiceInteractionResult]);
 
-  return { requestMicrophonePermission, startVoiceRecognition };
+  return {requestMicrophonePermission };
 };

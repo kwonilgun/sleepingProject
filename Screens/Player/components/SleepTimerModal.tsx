@@ -6,17 +6,20 @@ import { RFPercentage } from 'react-native-responsive-fontsize';
 interface SleepTimerModalProps {
   isVisible: boolean;
   onClose: () => void;
-  setAfterSleepTimer: (minutes: number) => void;
+  setInitialSleepDelay: (minutes: number) => void;
   currentSelectedTime: number; // To show the currently active selection
+  // onStartTimer: (minutes: number) => void; // 추가된 prop
+
 }
 
-const sleepTimerOptions = [0.1, 1, 5, 10, 15, 20, 30]; // Time options in minutes
+const sleepTimerOptions = [0.1,1, 5, 10, 15, 20, 30]; // Time options in minutes
 
 const SleepTimerModal: React.FC<SleepTimerModalProps> = ({
   isVisible,
   onClose,
-  setAfterSleepTimer,
+  setInitialSleepDelay,
   currentSelectedTime,
+  // onStartTimer, // 추가된 prop
 }) => {
   return (
     <Modal
@@ -33,11 +36,14 @@ const SleepTimerModal: React.FC<SleepTimerModalProps> = ({
               key={minutes}
               style={[
                 styles.sleepTimerOptionButton,
-                currentSelectedTime === minutes && styles.sleepTimerOptionButtonActive,
+                // currentSelectedTime === minutes && styles.sleepTimerOptionButtonActive,
+                // activeSleepTimerLabel === `${minutes}분 후 시작` && styles.sleepTimerOptionButtonActive,
               ]}
               onPress={() => {
-                setAfterSleepTimer(minutes);
-                onClose(); // Close modal after selection
+                // setAfterSleepTimer(minutes);
+                // onStartTimer(minutes); // 선택한 시간으로 수면 모드 시작
+                setInitialSleepDelay(minutes)
+                // onClose(); // Close modal after selection
               }}
             >
               <Text style={styles.sleepTimerOptionButtonText}>{minutes}분</Text>

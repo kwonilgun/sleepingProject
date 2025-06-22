@@ -1,22 +1,24 @@
-// src/components/TrackProgressSlider.tsx
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Slider from '@react-native-community/slider';
-import { useProgress } from 'react-native-track-player';
-import { width } from '../../styles/responsiveSize';
+import TrackPlayer from 'react-native-track-player';
+import { width } from '../../../assets/common/BaseValue';
 import { RFPercentage } from 'react-native-responsive-fontsize';
-import { formatTime } from '../../utils/playerUtils'; // Import utility function
+import { formatTime } from '../../../utils/formatTime';
+import { PlaylistItem } from '../PlaylistScreen';
+import { Progress } from 'react-native-track-player';
 
-interface TrackProgressSliderProps {
-  progress: ReturnType<typeof useProgress>;
-  onSlidingComplete: (value: number) => void;
-  disabled?: boolean;
+interface TrackPlaybackSliderProps {
+  progress: Progress ;
+  currentTrack: PlaylistItem;
+  isLoading: boolean;
+
 }
 
-const TrackProgressSlider: React.FC<TrackProgressSliderProps> = ({
+const TrackPlaybackSlider: React.FC<TrackPlaybackSliderProps> = ({
   progress,
-  onSlidingComplete,
-  disabled = false,
+  currentTrack,
+  isLoading,
 }) => {
   return (
     <View style={styles.timeContainer}>
@@ -26,11 +28,13 @@ const TrackProgressSlider: React.FC<TrackProgressSliderProps> = ({
         minimumValue={0}
         maximumValue={progress.duration || 0}
         value={progress.position}
-        onSlidingComplete={onSlidingComplete}
+        onSlidingComplete={async (value) => {
+          await TrackPlayer.seekTo(value);
+        }}
         minimumTrackTintColor="#1FB28A"
         maximumTrackTintColor="#ccc"
         thumbTintColor="#1FB28A"
-        disabled={disabled}
+        disabled={!currentTrack || isLoading}
       />
       <Text style={styles.timeText}>{formatTime(progress.duration)}</Text>
     </View>
@@ -38,6 +42,11 @@ const TrackProgressSlider: React.FC<TrackProgressSliderProps> = ({
 };
 
 const styles = StyleSheet.create({
+    slider: {
+    height: 40,
+    width: '70%',
+    marginHorizontal: 10,
+  },
   timeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -47,17 +56,12 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 8,
   },
-  slider: {
-    height: 40,
-    width: '70%',
-    marginHorizontal: 10,
-  },
   timeText: {
     fontSize: RFPercentage(1.8),
     minWidth: 40,
     textAlign: 'center',
     fontVariant: ['tabular-nums'],
   },
-});
+})
 
-export default TrackProgressSlider;
+export default TrackPlaybackSlider;
