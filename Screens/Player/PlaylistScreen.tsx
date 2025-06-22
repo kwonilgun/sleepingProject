@@ -33,7 +33,7 @@ import { useFocusEffect } from '@react-navigation/native';
 
 // import { convertEucKrToUtf8 } from '../../utils/converEucKrToUtf8';
 
-interface PlaylistItem {
+export interface PlaylistItem {
   id: string;
   name: string;
   title?: string;
