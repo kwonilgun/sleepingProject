@@ -27,6 +27,7 @@ import PlayerControls from './components/PlayerControls';
 import SleepTimerModal from './components/SleepTimerModal';
 import TrackPlaybackSlider from './components/TrackPlaybackSlider';
 import { useTrackPlayerSetup } from './hooks/useTrackPlayerSetup';
+import { useTtsSetup} from './hooks/useTtsSetup';
 import { useVoiceRecognition } from './hooks/useVoiceRecognition';
 
 export interface PlaylistItem {
@@ -142,131 +143,6 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ route, navigation }) => {
     }
   };
 
- // useEffect 내에서 이벤트 리스너 설정 (한 번만)
-  useEffect(() => {
-    const onSpeechResults = (e: any) => {
-      if (e.value && e.value.length > 0 && !voiceResponseHandledRef.current) {
-        recognizedTextRef.current = e.value[0];
-        console.log('인식된 음성:', recognizedTextRef.current);
-
-        if (recognizedTextRef.current.includes('아니요') || recognizedTextRef.current.includes('아니')) {
-
-          voiceResponseHandledRef.current = true;
-          Voice.stop().then(() => {
-            handleVoiceInteractionResult(true);
-          });
-        } else if (recognizedTextRef.current.includes('예') || recognizedTextRef.current.includes('네')) {
-          voiceResponseHandledRef.current = true;
-          Voice.stop().then(() => {
-            handleVoiceInteractionResult(true);
-          });
-        }
-        else if (recognizedTextRef.current.includes('예스') || recognizedTextRef.current.includes('노')) {
-          voiceResponseHandledRef.current = true;
-          Voice.stop().then(() => {
-            handleVoiceInteractionResult(true);
-          });
-        }
-        else{
-          voiceResponseHandledRef.current = true;
-          Voice.stop().then(() => {
-            handleVoiceInteractionResult(true);
-          });
-        }
-      }
-    };
-
-    const onSpeechError = (e: any) => {
-      console.log('음성 인식 오류:', e);
-      // if (!voiceResponseHandledRef.current) {
-      //   voiceResponseHandledRef.current = true;
-      //   handleVoiceInteractionResult(false);
-      // }
-    };
-
-    const onSpeechEnd = () => {
-      console.log('<<<<<<<음성 인식 세션 종료>>>>>>>');
-      // if (!voiceResponseHandledRef.current) {
-      //   voiceResponseHandledRef.current = true;
-      //   handleVoiceInteractionResult(false);
-      // }
-    };
-
-    Voice.onSpeechResults = onSpeechResults;
-    Voice.onSpeechError = onSpeechError;
-    Voice.onSpeechEnd = onSpeechEnd;
-
-    return () => {
-      Voice.destroy().then(Voice.removeAllListeners);
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const startVoiceRecognition = async () => {
-
-    try {
-       await Voice.start('ko-KR');
-
-        // 7초 타임아웃 설정
-        speechTimeoutRef.current = setTimeout(() => {
-          if (!voiceResponseHandledRef.current) {
-            console.log('<<<<<<<음성 인식 타임아웃>>>>>>>');
-            Voice.stop().then(() => {
-              handleVoiceInteractionResult(false);
-            });
-          }
-        }, 7000);
-    } catch (error) {
-       console.error('음성 상호작용 시작 오류:', error);
-      handleVoiceInteractionResult(false);
-    }
-  };
-
-  // Custom hook for Voice Recognition logic
-  useVoiceRecognition({
-      recognizedTextRef,
-      speechTimeoutRef,
-      voiceResponseHandledRef,
-      startVoiceRecognition,
-      // handleVoiceInteractionResult,
-      Tts,
-      // Voice,
-      Alert,
-    }
-  );
-
- const handleVoiceInteraction = async () => {
-  console.log('handleVoiceInteraction called.');
-  await TrackPlayer.pause();
-  // console.log('TrackPlayer paused in handleVoiceInteraction.');
-
-  try {
-    recognizedTextRef.current = '';
-    voiceResponseHandledRef.current = false;
-
-    if (speechTimeoutRef.current) {
-      clearTimeout(speechTimeoutRef.current);
-      speechTimeoutRef.current = null;
-    }
-
-    console.log('Calling Tts.speak("잠 들었나요?")...');
-    // Ensure you have a way to await TTS completion or check its status
-    await new Promise<void>(() => {
-        // const finishListener = Tts.addEventListener('tts-finish', (event) => {
-        //     console.log("TTS finish event caught in handleVoiceInteraction promise:", event);
-        //     finishListener.remove(); // Remove listener after it fires once
-        //     resolve();
-        // });
-        Tts.speak('잠 들었나요?');
-    });
-    console.log('Tts.speak("잠 들었나요?") completed.');
-    // TTS 종료 후 음성 인식 시작 (This is handled by the tts-finish listener in useEffect)
-
-  } catch (error) {
-    console.error('TTS error in handleVoiceInteraction:', error);
-    handleVoiceInteractionResult(false);
-  }
-};
   // --- 음성 상호작용 결과에 따른 처리 함수 ---
   const handleVoiceInteractionResult = async (continueMusic: any) => {
     console.log('continueMusic = ', continueMusic);
@@ -334,10 +210,142 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ route, navigation }) => {
       setRepeatMode(RepeatMode.Off); // Update React state
       sleepTimerCountRef.current = 0;
     }
-    
-
   };
 
+ useVoiceRecognition({
+    recognizedTextRef,
+    voiceResponseHandledRef,
+    handleVoiceInteractionResult,
+    Voice,
+ });
+
+
+//  // useEffect 내에서 이벤트 리스너 설정 (한 번만)
+//   useEffect(() => {
+//     const onSpeechResults = (e: any) => {
+//       if (e.value && e.value.length > 0 && !voiceResponseHandledRef.current) {
+//         recognizedTextRef.current = e.value[0];
+//         console.log('인식된 음성:', recognizedTextRef.current);
+
+//         if (recognizedTextRef.current.includes('아니요') || recognizedTextRef.current.includes('아니')) {
+
+//           voiceResponseHandledRef.current = true;
+//           Voice.stop().then(() => {
+//             handleVoiceInteractionResult(true);
+//           });
+//         } else if (recognizedTextRef.current.includes('예') || recognizedTextRef.current.includes('네')) {
+//           voiceResponseHandledRef.current = true;
+//           Voice.stop().then(() => {
+//             handleVoiceInteractionResult(true);
+//           });
+//         }
+//         else if (recognizedTextRef.current.includes('예스') || recognizedTextRef.current.includes('노')) {
+//           voiceResponseHandledRef.current = true;
+//           Voice.stop().then(() => {
+//             handleVoiceInteractionResult(true);
+//           });
+//         }
+//         else{
+//           voiceResponseHandledRef.current = true;
+//           Voice.stop().then(() => {
+//             handleVoiceInteractionResult(true);
+//           });
+//         }
+//       }
+//     };
+
+//     const onSpeechError = (e: any) => {
+//       console.log('음성 인식 오류:', e);
+//       // if (!voiceResponseHandledRef.current) {
+//       //   voiceResponseHandledRef.current = true;
+//       //   handleVoiceInteractionResult(false);
+//       // }
+//     };
+
+//     const onSpeechEnd = () => {
+//       console.log('<<<<<<<음성 인식 세션 종료>>>>>>>');
+//       // if (!voiceResponseHandledRef.current) {
+//       //   voiceResponseHandledRef.current = true;
+//       //   handleVoiceInteractionResult(false);
+//       // }
+//     };
+
+//     Voice.onSpeechResults = onSpeechResults;
+//     Voice.onSpeechError = onSpeechError;
+//     Voice.onSpeechEnd = onSpeechEnd;
+
+//     return () => {
+//       Voice.destroy().then(Voice.removeAllListeners);
+//     };
+//   // eslint-disable-next-line react-hooks/exhaustive-deps
+//   }, []);
+
+  const startVoiceRecognition = async () => {
+
+    try {
+       await Voice.start('ko-KR');
+
+        // 7초 타임아웃 설정
+        speechTimeoutRef.current = setTimeout(() => {
+          if (!voiceResponseHandledRef.current) {
+            console.log('<<<<<<<음성 인식 타임아웃>>>>>>>');
+            Voice.stop().then(() => {
+              handleVoiceInteractionResult(false);
+            });
+          }
+        }, 7000);
+    } catch (error) {
+       console.error('음성 상호작용 시작 오류:', error);
+      handleVoiceInteractionResult(false);
+    }
+  };
+
+  // Custom hook for Voice Recognition logic
+  useTtsSetup({
+      recognizedTextRef,
+      speechTimeoutRef,
+      voiceResponseHandledRef,
+      startVoiceRecognition,
+      // handleVoiceInteractionResult,
+      Tts,
+      // Voice,
+      Alert,
+    }
+  );
+
+ const handleVoiceInteraction = async () => {
+  console.log('handleVoiceInteraction called.');
+  await TrackPlayer.pause();
+  // console.log('TrackPlayer paused in handleVoiceInteraction.');
+
+  try {
+    recognizedTextRef.current = '';
+    voiceResponseHandledRef.current = false;
+
+    if (speechTimeoutRef.current) {
+      clearTimeout(speechTimeoutRef.current);
+      speechTimeoutRef.current = null;
+    }
+
+    console.log('Calling Tts.speak("잠 들었나요?")...');
+    // Ensure you have a way to await TTS completion or check its status
+    await new Promise<void>(() => {
+        // const finishListener = Tts.addEventListener('tts-finish', (event) => {
+        //     console.log("TTS finish event caught in handleVoiceInteraction promise:", event);
+        //     finishListener.remove(); // Remove listener after it fires once
+        //     resolve();
+        // });
+        Tts.speak('잠 들었나요?');
+    });
+    console.log('Tts.speak("잠 들었나요?") completed.');
+    // TTS 종료 후 음성 인식 시작 (This is handled by the tts-finish listener in useEffect)
+
+  } catch (error) {
+    console.error('TTS error in handleVoiceInteraction:', error);
+    handleVoiceInteractionResult(false);
+  }
+};
+  
 // Function to cancel sleep timer
   const cancelSleepTimer = async () => {
     if (sleepTimerRef.current) {

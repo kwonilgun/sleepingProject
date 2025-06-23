@@ -20,7 +20,7 @@ import PlayerControls from './components/PlayerControls';
 import VolumeControl from './components/VolumeControl';
 import SleepTimerModal from './components/SleepTimerModal';
 import { useTrackPlayerSetup } from './hooks/useTrackPlayerSetup';
-import { useVoiceRecognition } from './hooks/useVoiceRecognition';
+import { useVoiceRecognition } from './hooks/useTtsSetup';
 // import { formatTime } from '../utils/audioHelpers'; // Helper for time formatting
 import { playerStyles as styles } from '../../styles/playerStyles'; // Renamed for clarity
 // import { Slider } from 'react-native';
