@@ -1,6 +1,5 @@
 import { useState, useCallback } from 'react';
 import TrackPlayer, { State } from 'react-native-track-player';
-import { formatTime } from '../../../utils/formatTime';
 
 const usePlayback = () => {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -61,7 +60,6 @@ const usePlayback = () => {
     getRepeatButtonIcon,
     getRepeatButtonColor,
     toggleRepeatMode: () => setRepeatMode((prev) => (prev + 1) % 3),
-    formatTime
   };
 };
 
