@@ -2,9 +2,7 @@
 /* eslint-disable react/no-unstable-nested-components */
 // src/screens/PlayerScreen.tsx
 import React, { useState, useEffect, useRef } from 'react'; // Import useRef
-import { Text, View, StyleSheet, TouchableOpacity, Alert, Platform, PermissionsAndroid, Modal } from 'react-native';
-import Slider from '@react-native-community/slider';
-import { baseURL } from '../../assets/common/BaseUrl';
+import { Text, View, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import colors from '../../styles/colors';
@@ -17,13 +15,9 @@ import Tts from 'react-native-tts'; // Text-to-Speech 라이브러리
 import Voice from "@react-native-voice/voice";
 
 import TrackPlayer, {
-  Event,
   usePlaybackState,
   useProgress,
-  State,
-  Capability,
-  AppKilledPlaybackBehavior,
-  RepeatMode as TrackPlayerRepeatMode,
+  State
 } from 'react-native-track-player';
 import { width } from '../../styles/responsiveSize';
 import ScreenBrightness from 'react-native-screen-brightness';
@@ -32,8 +26,8 @@ import VolumeControl from './components/VolumeControl';
 import PlayerControls from './components/PlayerControls';
 import SleepTimerModal from './components/SleepTimerModal';
 import TrackPlaybackSlider from './components/TrackPlaybackSlider';
-
-
+import { useTrackPlayerSetup } from './hooks/useTrackPlayerSetup';
+import { useVoiceRecognition } from './hooks/useVoiceRecognition';
 
 export interface PlaylistItem {
   id: string;
@@ -50,11 +44,6 @@ export interface PlaylistItem {
   depth?: number;
 }
 
-// interface PlayerScreenProps {
-//   route: { params: { selectedTracks: string[] | undefined; playlist: PlaylistItem[] | undefined } };
-//   navigation: any;
-// }
-
 enum RepeatMode {
   Off,
   RepeatOne,
@@ -68,7 +57,7 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ route, navigation }) => {
   // route.params가 undefined일 경우, 빈 객체 {}를 기본값으로 사용
   const { selectedTracks = [], playlist = [] } = route.params || {};
 
-  const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
+  const [currentTrackIndex, setCurrentTrackIndex] = useState<number>(0);
   const [repeatMode, setRepeatMode] = useState<RepeatMode>(RepeatMode.Off);
   const [volume, setVolume] = useState<number>(0.3);
   const [prevVolume, setPrevVolume] = useState<number>(1.0); // To store volume before muting
@@ -81,17 +70,23 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ route, navigation }) => {
   const sleepTimerCountRef = useRef<number>(0); // 3회 반복을 위한 카운터
 
   const [afterSleepTimer, setAfterSleepTimer] = useState<number>(0.1);
-  const [sleepDelay, setSleepDelay] = React.useState(0.1); // Or your initial default
+  // const [sleepDelay, setSleepDelay] = React.useState(0.1); // Or your initial default
 
   // New states for fixed sleep timer options
   const [showSleepTimerOptions, setShowSleepTimerOptions] = useState<boolean>(false);
-  const [activeSleepTimerLabel, setActiveSleepTimerLabel] = useState<string | null>(null); // e.g., "5분 후 시작"
+  // const [activeSleepTimerLabel, setActiveSleepTimerLabel] = useState<string | null>(null); // e.g., "5분 후 시작"
 
   // 음성 인식 결과 저장 및 처리
   const recognizedTextRef = useRef(''); // 현재 인식된 텍스트를 저장
   const speechTimeoutRef = useRef<NodeJS.Timeout | null>(null); // 음성 인식 타임아웃 ID 저장
   const voiceResponseHandledRef = useRef(false); // 음성 응답 처리 여부 플래그
   const afterSleepTimerRef = useRef<number>(0.1);
+
+
+  const currentUri = selectedTracks[currentTrackIndex];
+  let currentTrack = playlist.find(item => item.uri === currentUri && item.type === 'file');
+  const isPlaying = playbackState.state === State.Playing;
+  const isLoading = playbackState.state === State.Buffering || playbackState.state === State.Connecting;
 
   // --- 추가된 로직 시작 ---
   useEffect(() => {
@@ -122,87 +117,32 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ route, navigation }) => {
     }
   }, [route.params, navigation]); // route.params와 navigation이 변경될 때마다 이 효과를 다시 실행
 
+  useTrackPlayerSetup({
+      repeatMode,
+      playbackState,
+      volume,
+      currentTrackIndex,
+      selectedTracks,
+      playlist,
+      setCurrentTrackIndex,
+      setDisplayTitle,
+      sleepTimerRef,
+      setSleepTimerActive,
+      sleepTimerCountRef,
+      // RepeatMode,
+    }
+  );
 
-
-  // voice recognition
-  // const { selectedTracks, playlist } = route.params;
-  const currentUri = selectedTracks[currentTrackIndex];
-  let currentTrack = playlist.find(item => item.uri === currentUri && item.type === 'file');
-
-  // Inside PlayerScreen component
-  useEffect(() => {
-    const checkAndRequestPermission = async () => {
-      // Only call if permission hasn't been granted yet
-      if(Platform.OS === 'android'){
-        const granted = await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.RECORD_AUDIO);
-        if(!granted) {
-          await requestMicrophonePermission(); // This function already handles Android.
-        }
-      }
-      if (Platform.OS === 'ios' ) { // On iOS, just trying to start will prompt.
-        console.log('ios platform Microphone permisson 필요없다...');
-        // On Android, we explicitly request.
-        // For iOS, it will effectively do nothing but return true if Info.plist is set up.
-      }
-      // Alternatively, for iOS, you might just try to 'start' Voice.
-      // The first Voice.start() call will trigger the iOS permission dialog.
-      // However, this might not be ideal if you don't want voice recognition active immediately.
-    };
-
-    // If you *really* want to force it at startup, even if not immediately needed
-    // You might call a lightweight Voice function that triggers the permission, e.g., Voice.start()
-    // and then immediately Voice.stop() if you don't need it active.
-    // This is generally not recommended as it's a bad user experience.
-    // Users prefer permissions to be requested when they are about to use the feature.
-    checkAndRequestPermission();
-  }, []);
-
-
-  useEffect(() => {
-  // TTS 초기화 및 이벤트 설정
-  const initTTS = async () => {
-    try {
-      await Tts.setDefaultLanguage('ko-KR');
-      // await Tts.setDefaultRate(0.5);
-      // await Tts.setDefaultPitch(1.0);
-    } catch (error) {
-      console.error('TTS 설정 오류:', error);
+  const togglePlayback = async () => {
+    const currentState = await TrackPlayer.getState();
+    if (currentState === State.Playing) {
+      await TrackPlayer.pause();
+    } else {
+      await TrackPlayer.play();
     }
   };
 
-  initTTS();
-
-  // Define your event handlers
-  const onSpeechStart = () => console.log('TTS 시작');
-  const onSpeechProgress = (event:any ) => console.log("progress", event);
-  const onSpeechFinish = (event:any ) => {
-    console.log('Tts.addEventListner finish', event);
-    startVoiceRecognition();
-  };
-  const onSpeechCancel = (event:any) => console.log("cancel", event);
-
-  // TTS 이벤트 리스너 등록
-  Tts.addEventListener('tts-start', onSpeechStart);
-  Tts.addEventListener('tts-progress', onSpeechProgress);
-  Tts.addEventListener('tts-finish', onSpeechFinish);
-  Tts.addEventListener('tts-cancel', onSpeechCancel);
-
-  // ... 기존의 Voice 이벤트 리스너 설정 ...
-
-  return () => {
-    // TTS 리스너 제거
-    Tts.removeEventListener('tts-start', onSpeechStart);
-    Tts.removeEventListener('tts-progress', onSpeechProgress);
-    Tts.removeEventListener('tts-finish', onSpeechFinish);
-    Tts.removeEventListener('tts-cancel', onSpeechCancel);
-
-    // Tts.stop(); // Uncomment if you want to stop TTS on unmount
-    // ... 기존의 Voice 정리 코드 ...
-  };
-}, []);
-
-
-  // useEffect 내에서 이벤트 리스너 설정 (한 번만)
+ // useEffect 내에서 이벤트 리스너 설정 (한 번만)
   useEffect(() => {
     const onSpeechResults = (e: any) => {
       if (e.value && e.value.length > 0 && !voiceResponseHandledRef.current) {
@@ -222,6 +162,12 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ route, navigation }) => {
           });
         }
         else if (recognizedTextRef.current.includes('예스') || recognizedTextRef.current.includes('노')) {
+          voiceResponseHandledRef.current = true;
+          Voice.stop().then(() => {
+            handleVoiceInteractionResult(true);
+          });
+        }
+        else{
           voiceResponseHandledRef.current = true;
           Voice.stop().then(() => {
             handleVoiceInteractionResult(true);
@@ -256,195 +202,6 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ route, navigation }) => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    console.log('Current Playback State:', playbackState);
-    // If playback stops for any reason other than the sleep timer, clear the sleep timer
-    if (playbackState.state === State.Stopped || playbackState.state === State.Paused) {
-      // if (sleepTimerRef.current) {
-      //   clearTimeout(sleepTimerRef.current);
-      //   sleepTimerRef.current = null;
-      //   setSleepTimerActive(false);
-      //   sleepTimerCountRef.current = 0; // Reset count when playback stops/pauses
-
-      // }
-    }
-  }, [playbackState]);
-
-  useEffect(() => {
-    const setup = async () => {
-      try {
-        await TrackPlayer.updateOptions({
-          stopWithApp: false,
-          capabilities: [
-            Capability.Play,
-            Capability.Pause,
-            Capability.SkipToNext,
-            Capability.SkipToPrevious,
-            Capability.Stop,
-          ],
-          compactCapabilities: [
-            Capability.Play,
-            Capability.Pause,
-            Capability.SkipToNext,
-            Capability.SkipToPrevious,
-          ],
-          android: {
-            appKilledPlaybackBehavior: AppKilledPlaybackBehavior.ContinuePlayback,
-          },
-        });
-        await TrackPlayer.setVolume(volume);
-      } catch (e) {
-        console.error(e);
-        Alert.alert('오류', '음악 플레이어 설정에 실패했습니다.');
-      }
-    };
-
-    setup();
-
-    const listenerPlaybackActiveTrackChanged = TrackPlayer.addEventListener(Event.PlaybackActiveTrackChanged, async data => {
-      console.log('listenerPlaybackActiveTrackChanged  data', data);
-      if (data.track !== undefined && data.track !== null) {
-        setDisplayTitle(data.track?.title!)
-        const queue = await TrackPlayer.getQueue();
-        const newIndex = queue.findIndex(t => t.id === data.track);
-        if (newIndex > -1) {
-          setCurrentTrackIndex(newIndex);
-        }
-      }
-    });
-
-    const listenerPlaybackQueueEnded = TrackPlayer.addEventListener(Event.PlaybackQueueEnded, async data => {
-      console.log('listenerPlaybackQueueEnded data ', data);
-      if (repeatMode === RepeatMode.Off) {
-        await TrackPlayer.pause();
-        await TrackPlayer.seekTo(0);
-        setCurrentTrackIndex(0);
-        // Clear sleep timer if playback naturally ends
-        if (sleepTimerRef.current) {
-          clearTimeout(sleepTimerRef.current);
-          sleepTimerRef.current = null;
-          setSleepTimerActive(false);
-          sleepTimerCountRef.current = 0; // Reset count
-
-        }
-      }
-    });
-
-    return () => {
-      listenerPlaybackActiveTrackChanged.remove();
-      listenerPlaybackQueueEnded.remove();
-      if (sleepTimerRef.current) { // Clear timer on unmount
-        clearTimeout(sleepTimerRef.current);
-        sleepTimerRef.current = null;
-      }
-    };
-  }, [repeatMode, volume]);
-
-  useEffect(() => {
-    const load = async () => {
-      if (selectedTracks.length === 0) {
-        await TrackPlayer.stop();
-        return;
-      }
-
-      const tracksToAdd = selectedTracks.map(uri => {
-        console.log('tracksToAdd uri: ', uri)
-        const item = playlist.find(p => p.uri === uri && p.type === 'file');
-        if (item) {
-          return {
-            id: item.id,
-            url: `${baseURL}stream/${item.uri}`,
-            title: item.name.replace(/\.mp3$/i, ''),
-            artist: item.artist || 'Unknown',
-            duration: item.duration || 0,
-          };
-        }
-        return null;
-      }).filter(Boolean);
-
-      console.log('tracksToAdd :', tracksToAdd);
-
-      try {
-        await TrackPlayer.reset();
-        await TrackPlayer.add(tracksToAdd as any);
-        await TrackPlayer.skip(currentTrackIndex);
-        await TrackPlayer.play();      //실제적으로 play가 진행이 된다.
-      } catch (e) {
-        console.error('재생 오류:', e);
-        Alert.alert('재생 오류', `선택된 곡을 재생할 수 없습니다: ${e.message}`);
-        await TrackPlayer.pause();
-      }
-    };
-    load();
-  }, [currentTrackIndex, playlist, selectedTracks]);
-
-  useEffect(() => {
-    const playCurrentTrack = async () => {
-      if (selectedTracks.length > 0 && currentTrackIndex >= 0 && currentTrackIndex < selectedTracks.length) {
-        try {
-          const queue = await TrackPlayer.getQueue();
-          if (queue.length > 0) {
-            await TrackPlayer.skip(currentTrackIndex);
-            await TrackPlayer.play();
-          }
-        } catch (e) {
-          console.error('스킵 오류:', e);
-          Alert.alert('재생 오류', '다음 곡으로 이동할 수 없습니다.');
-          await TrackPlayer.pause();
-        }
-      }
-    };
-    playCurrentTrack();
-  }, [currentTrackIndex, selectedTracks]);
-
-  useEffect(() => {
-    const setRepeat = async () => {
-      console.log('repeatMode useEffect fired. New mode:', repeatMode);
-      const mode =
-        repeatMode === RepeatMode.Off
-          ? TrackPlayerRepeatMode.Off
-          : repeatMode === RepeatMode.RepeatOne
-            ? TrackPlayerRepeatMode.Track
-            : TrackPlayerRepeatMode.Queue;
-      await TrackPlayer.setRepeatMode(mode);
-      console.log('TrackPlayer.setRepeatMode called with:', mode);
-    };
-    setRepeat();
-  }, [repeatMode]);
-
-  const togglePlayback = async () => {
-    const currentState = await TrackPlayer.getState();
-    if (currentState === State.Playing) {
-      await TrackPlayer.pause();
-    } else {
-      await TrackPlayer.play();
-    }
-  };
-
-  const requestMicrophonePermission = async () => {
-    if (Platform.OS === 'android') {
-      try {
-        const granted = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
-          {
-            title: '마이크 권한 요청',
-            message: '수면모드 기능을 사용하려면 마이크 접근 권한이 필요합니다.',
-            buttonNeutral: '나중에',
-            buttonNegative: '취소',
-            buttonPositive: '확인',
-          },
-        );
-        return granted === PermissionsAndroid.RESULTS.GRANTED;
-      } catch (err) {
-        console.warn('마이크 권한 요청 오류:', err);
-        return false;
-      }
-    }
-    // iOS의 경우 Info.plist에 NSMicrophoneUsageDescription이 설정되어 있으면
-    // 앱이 마이크를 처음 사용할 때 자동으로 권한 팝업이 뜹니다.
-    return true;
-  };
-
   const startVoiceRecognition = async () => {
 
     try {
@@ -464,6 +221,19 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ route, navigation }) => {
       handleVoiceInteractionResult(false);
     }
   };
+
+  // Custom hook for Voice Recognition logic
+  useVoiceRecognition({
+      recognizedTextRef,
+      speechTimeoutRef,
+      voiceResponseHandledRef,
+      startVoiceRecognition,
+      // handleVoiceInteractionResult,
+      Tts,
+      // Voice,
+      Alert,
+    }
+  );
 
  const handleVoiceInteraction = async () => {
   console.log('handleVoiceInteraction called.');
@@ -683,15 +453,6 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ route, navigation }) => {
     }
   };
 
-  const formatTime = (seconds: number): string => {
-    const m = Math.floor(seconds / 60);
-    const s = Math.floor(seconds % 60);
-    return `${m}:${s < 10 ? '0' : ''}${s}`;
-  };
-
-  const isPlaying = playbackState.state === State.Playing;
-  const isLoading = playbackState.state === State.Buffering || playbackState.state === State.Connecting;
-
   const toggleMute = async () => {
     if (isMuted) {
       // Unmute: restore to previous volume
@@ -706,7 +467,6 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ route, navigation }) => {
       setIsMuted(true);
     }
   };
-
 
   const LeftCustomComponent = () => {
     const handleGoBack = async () => {
@@ -784,7 +544,6 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ route, navigation }) => {
             {isLoading && ' (로딩 중...)'}
           </Text>
 
-
           <PlayerControls
             isPlaying={isPlaying}
             isLoading={isLoading}
@@ -805,7 +564,6 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ route, navigation }) => {
               isLoading={isLoading}
             />
           )}
-
 
           <VolumeControl
             volume={volume}
@@ -833,14 +591,12 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ route, navigation }) => {
           </TouchableOpacity>
 
           {/* Sleep Timer Options Modal */}
-
           <SleepTimerModal
             isVisible={showSleepTimerOptions}
             onClose={() => setShowSleepTimerOptions(false)}
             setInitialSleepDelay={setInitialSleepDelay}
             currentSelectedTime={afterSleepTimerRef.current}
           />
-
       </View>
     </WrapperContainer>
   );

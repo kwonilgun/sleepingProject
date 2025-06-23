@@ -7,6 +7,7 @@ import TrackPlayer, {
   AppKilledPlaybackBehavior,
   RepeatMode as TrackPlayerRepeatMode,
   RepeatMode,
+  PlaybackState,
 } from 'react-native-track-player';
 import { PlaylistItem } from '../PlaylistScreen';
 import { baseURL } from '../../../assets/common/BaseUrl';
@@ -16,7 +17,9 @@ import { baseURL } from '../../../assets/common/BaseUrl';
 
 interface UseTrackPlayerSetupProps {
   repeatMode: number; // Use number corresponding to RepeatMode enum
+  playbackState: PlaybackState | { state: undefined; }
   volume: number;
+  currentTrackIndex:number;
   selectedTracks: string[];
   playlist: PlaylistItem[];
   setCurrentTrackIndex: (index: number) => void;
@@ -29,7 +32,9 @@ interface UseTrackPlayerSetupProps {
 
 export const useTrackPlayerSetup = ({
   repeatMode,
+  playbackState,
   volume,
+  currentTrackIndex,
   selectedTracks,
   playlist,
   setCurrentTrackIndex,
@@ -40,6 +45,22 @@ export const useTrackPlayerSetup = ({
   // RepeatModeEnum
 }: UseTrackPlayerSetupProps) => {
 
+  
+    useEffect(() => {
+      console.log('Current Playback State:', playbackState);
+      // If playback stops for any reason other than the sleep timer, clear the sleep timer
+      if (playbackState.state === State.Stopped || playbackState.state === State.Paused) {
+        // if (sleepTimerRef.current) {
+        //   clearTimeout(sleepTimerRef.current);
+        //   sleepTimerRef.current = null;
+        //   setSleepTimerActive(false);
+        //   sleepTimerCountRef.current = 0; // Reset count when playback stops/pauses
+  
+        // }
+      }
+    }, [playbackState]);
+  
+// 플레이어 초기 설정
   useEffect(() => {
     const setup = async () => {
       try {
@@ -106,6 +127,7 @@ export const useTrackPlayerSetup = ({
     };
   }, [repeatMode, volume, setCurrentTrackIndex, setDisplayTitle, sleepTimerRef, setSleepTimerActive, sleepTimerCountRef]);
 
+// 트랙 로드 및 재생
   useEffect(() => {
     const load = async () => {
       if (selectedTracks.length === 0) {
@@ -114,6 +136,7 @@ export const useTrackPlayerSetup = ({
       }
 
       const tracksToAdd = selectedTracks.map(uri => {
+        console.log('tracksToAdd uri: ', uri)
         const item = playlist.find(p => p.uri === uri && p.type === 'file');
         if (item) {
           return {
@@ -127,22 +150,45 @@ export const useTrackPlayerSetup = ({
         return null;
       }).filter(Boolean);
 
+      console.log('tracksToAdd :', tracksToAdd);
+
       try {
         await TrackPlayer.reset();
         await TrackPlayer.add(tracksToAdd as any);
-        await TrackPlayer.skip(0); // Start from the first track
-        await TrackPlayer.play();
-      } catch (e: any) {
+        await TrackPlayer.skip(currentTrackIndex);
+        await TrackPlayer.play();      //실제적으로 play가 진행이 된다.
+      } catch (e) {
         console.error('재생 오류:', e);
         Alert.alert('재생 오류', `선택된 곡을 재생할 수 없습니다: ${e.message}`);
         await TrackPlayer.pause();
       }
     };
     load();
-  }, [selectedTracks, playlist]); // Only re-run when selectedTracks or playlist changes
+  }, [currentTrackIndex, playlist, selectedTracks]);
 
   useEffect(() => {
-    const setRepeat = async () => {
+    const playCurrentTrack = async () => {
+      if (selectedTracks.length > 0 && currentTrackIndex >= 0 && currentTrackIndex < selectedTracks.length) {
+        try {
+          const queue = await TrackPlayer.getQueue();
+          if (queue.length > 0) {
+            await TrackPlayer.skip(currentTrackIndex);
+            await TrackPlayer.play();
+          }
+        } catch (e) {
+          console.error('스킵 오류:', e);
+          Alert.alert('재생 오류', '다음 곡으로 이동할 수 없습니다.');
+          await TrackPlayer.pause();
+        }
+      }
+    };
+    playCurrentTrack();
+  }, [currentTrackIndex, selectedTracks]);
+
+  useEffect(() => {
+      const setRepeat = async () => {
+      console.log('repeatMode useEffect fired. New mode:', repeatMode);
+
       const mode =
         repeatMode === RepeatMode.Off
           ? TrackPlayerRepeatMode.Off

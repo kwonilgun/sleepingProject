@@ -3,15 +3,17 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { useEffect, useCallback } from 'react';
 import { Platform, PermissionsAndroid, Alert } from 'react-native';
-import tts from 'react-native-tts';
-import Voice from '@react-native-voice/voice';
+import { ReactNativeTts } from 'react-native-tts';
+// import tts from 'react-native-tts';
+// import Voice from '@react-native-voice/voice';
 
 interface UseVoiceRecognitionProps {
   recognizedTextRef: React.MutableRefObject<string>;
   speechTimeoutRef: React.MutableRefObject<NodeJS.Timeout | null>;
   voiceResponseHandledRef: React.MutableRefObject<boolean>;
-  handleVoiceInteractionResult: (continueMusic: boolean) => Promise<void>;
-  Tts: typeof tts;
+  startVoiceRecognition: () => void;
+  // handleVoiceInteractionResult: (continueMusic: boolean) => Promise<void>;
+  Tts: ReactNativeTts ;
   // Voice: typeof Voice;
   Alert: typeof Alert;
 }
@@ -20,7 +22,8 @@ export const useVoiceRecognition = ({
   recognizedTextRef,
   speechTimeoutRef,
   voiceResponseHandledRef,
-  handleVoiceInteractionResult,
+  // handleVoiceInteractionResult,
+  startVoiceRecognition,
   Tts,
   // Voice,
   Alert,
@@ -48,116 +51,79 @@ export const useVoiceRecognition = ({
     return true;
   }, []);
 
-  // const startVoiceRecognition = useCallback(async () => {
-  //   try {
-  //     await Voice.start('ko-KR');
-
-  //     speechTimeoutRef.current = setTimeout(() => {
-  //       if (!voiceResponseHandledRef.current) {
-  //         Voice.stop().then(() => {
-  //           handleVoiceInteractionResult(false);
-  //         });
-  //       }
-  //     }, 7000);
-  //   } catch (error) {
-  //     console.error('음성 상호작용 시작 오류:', error);
-  //     handleVoiceInteractionResult(false);
-  //   }
-  // }, [Voice, speechTimeoutRef, voiceResponseHandledRef, handleVoiceInteractionResult]);
-
+  // Inside PlayerScreen component
+    useEffect(() => {
+      const checkAndRequestPermission = async () => {
+        // Only call if permission hasn't been granted yet
+        if(Platform.OS === 'android'){
+          const granted = await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.RECORD_AUDIO);
+          if(!granted) {
+            await requestMicrophonePermission(); // This function already handles Android.
+          }
+        }
+        if (Platform.OS === 'ios' ) { // On iOS, just trying to start will prompt.
+          console.log('ios platform Microphone permisson 필요없다...');
+          // On Android, we explicitly request.
+          // For iOS, it will effectively do nothing but return true if Info.plist is set up.
+        }
+        // Alternatively, for iOS, you might just try to 'start' Voice.
+        // The first Voice.start() call will trigger the iOS permission dialog.
+        // However, this might not be ideal if you don't want voice recognition active immediately.
+      };
   
+      // If you *really* want to force it at startup, even if not immediately needed
+      // You might call a lightweight Voice function that triggers the permission, e.g., Voice.start()
+      // and then immediately Voice.stop() if you don't need it active.
+      // This is generally not recommended as it's a bad user experience.
+      // Users prefer permissions to be requested when they are about to use the feature.
+      checkAndRequestPermission();
+    }, []);
 
 
+  // TTS. 초기화
   useEffect(() => {
-    const initTTS = async () => {
-      try {
-        await Tts.setDefaultLanguage('ko-KR');
-      } catch (error) {
-        console.error('TTS 설정 오류:', error);
-      }
-    };
-
-    initTTS();
-
-    const ttsListeners = [
-      Tts.addEventListener('tts-start', () => console.log('TTS 시작')),
-      Tts.addEventListener('tts-progress', (event) => console.log("progress", event)),
-      Tts.addEventListener('tts-finish', (event) => {
-        console.log('useVoiceRecognition, finish event = ', event);
-        startVoiceRecognition();
-      }),
-      Tts.addEventListener('tts-cancel', (event) => console.log("cancel", event)),
-    ];
-
-    const startVoiceRecognition = async () => {
-
-        console.log('startVoiceRecognition, .....');
-
+      // TTS 초기화 및 이벤트 설정
+      const initTTS = async () => {
         try {
-          await Voice.start('ko-KR');
-
-            // 7초 타임아웃 설정
-            speechTimeoutRef.current = setTimeout(() => {
-              if (!voiceResponseHandledRef.current) {
-                console.log('<<<<<<<음성 인식 타임아웃>>>>>>>');
-                Voice.stop().then(() => {
-                  handleVoiceInteractionResult(false);
-                });
-              }
-            }, 7000);
+          await Tts.setDefaultLanguage('ko-KR');
+          // await Tts.setDefaultRate(0.5);
+          // await Tts.setDefaultPitch(1.0);
         } catch (error) {
-          console.error('음성 상호작용 시작 오류:', error);
-          handleVoiceInteractionResult(false);
+          console.error('TTS 설정 오류:', error);
         }
-    };
+      };
 
-    const onSpeechResults = (e: any) => {
-      if (e.value && e.value.length > 0 && !voiceResponseHandledRef.current) {
-        recognizedTextRef.current = e.value[0];
-        if (recognizedTextRef.current.includes('아니요') || recognizedTextRef.current.includes('아니') || recognizedTextRef.current.includes('노')) {
-          voiceResponseHandledRef.current = true;
-          Voice.stop().then(() => {
-            handleVoiceInteractionResult(false); // Changed to false based on prompt
-          });
-        } else if (recognizedTextRef.current.includes('예') || recognizedTextRef.current.includes('네') || recognizedTextRef.current.includes('예스')) {
-          voiceResponseHandledRef.current = true;
-          Voice.stop().then(() => {
-            handleVoiceInteractionResult(true);
-          });
-        }
-      }
-    };
+      initTTS();
 
-    const onSpeechError = (e: any) => {
-      console.log('음성 인식 오류:', e);
-      // If error occurs and no response has been handled, consider it as 'no' (user didn't respond)
-      if (!voiceResponseHandledRef.current) {
-        voiceResponseHandledRef.current = true;
-        handleVoiceInteractionResult(false);
-      }
-    };
+      // Define your event handlers
+      const onSpeechStart = () => console.log('TTS 시작');
+      const onSpeechProgress = (event:any ) => console.log("progress", event);
+      const onSpeechFinish = (event:any ) => {
+        console.log('Tts.addEventListner finish', event);
+        startVoiceRecognition();
+      };
+      const onSpeechCancel = (event:any) => console.log("cancel", event);
 
-    const onSpeechEnd = () => {
-      console.log('<<<<<<<음성 인식 세션 종료>>>>>>>');
-      // If speech ends but no response was handled, treat as no response
-      if (!voiceResponseHandledRef.current) {
-        voiceResponseHandledRef.current = true;
-        handleVoiceInteractionResult(false);
-      }
-    };
+      // TTS 이벤트 리스너 등록
+      Tts.addEventListener('tts-start', onSpeechStart);
+      Tts.addEventListener('tts-progress', onSpeechProgress);
+      Tts.addEventListener('tts-finish', onSpeechFinish);
+      Tts.addEventListener('tts-cancel', onSpeechCancel);
 
-    Voice.onSpeechResults = onSpeechResults;
-    Voice.onSpeechError = onSpeechError;
-    Voice.onSpeechEnd = onSpeechEnd;
+      // ... 기존의 Voice 이벤트 리스너 설정 ...
 
-    return () => {
-      ttsListeners.forEach(listener => listener.remove());
-      Voice.destroy().then(Voice.removeAllListeners);
-      if (speechTimeoutRef.current) {
-        clearTimeout(speechTimeoutRef.current);
-      }
-    };
-  }, [Tts, Voice, recognizedTextRef, speechTimeoutRef, voiceResponseHandledRef, handleVoiceInteractionResult]);
+      return () => {
+        // TTS 리스너 제거
+        Tts.removeEventListener('tts-start', onSpeechStart);
+        Tts.removeEventListener('tts-progress', onSpeechProgress);
+        Tts.removeEventListener('tts-finish', onSpeechFinish);
+        Tts.removeEventListener('tts-cancel', onSpeechCancel);
+
+        // Tts.stop(); // Uncomment if you want to stop TTS on unmount
+        // ... 기존의 Voice 정리 코드 ...
+      };
+}, []);
+
 
   return {requestMicrophonePermission };
 };
