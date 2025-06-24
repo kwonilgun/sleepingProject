@@ -17,6 +17,7 @@ import {createStackNavigator} from '@react-navigation/stack';
 import {RootStackParamList} from '../Screens/model/types/TUserNavigator';
 // import PlaylistScreen from '../Screens/Player/PlaylistScreen';
 import PlayerScreen from '../Screens/Player/PlayerScreen';
+import PlaylistScreen from '../Screens/Player/PlaylistScreen';
 
 
 // 2024-02-14 : 버그 Fix, RootStackParamList 를 추가함. 타입을 지정
@@ -54,7 +55,7 @@ function MyStack() {
         })}
       />
 
-      {/* <Stack.Screen
+      <Stack.Screen
         name="PlaylistScreen"
         component={PlaylistScreen}
         options={({navigation, route}) => ({
@@ -65,7 +66,7 @@ function MyStack() {
           //   <LogoTitle title="루트원 마켓" navigation={navigation} />
           // ),
         })}
-      /> */}
+      />
       {/* <Stack.Screen
         name="ProductDetailScreen"
         component={ProductDetailScreen}

@@ -38,15 +38,20 @@ import { useAuth } from '../../context/store/Context.Manager';
 // import { getToken } from '../../utils/getSaveToken';
 import { alertMsg } from '../../utils/alerts/alertMsg';
 import { handleKakaoLogin } from './kakaoLogin';
+import { useSleepTimer } from '../../context/store/SleepTimerContext';
 
 export interface OAuthResponse {
   token : string;
   email : string;
 }
 
+const SLEEP_DELAY_KEY = 'sleepTimerInitialDelay'; // Key for AsyncStorage
+
+
 const LoginScreen: React.FC<LoginScreenProps> = ({navigation}) => {
 
   const {state, dispatch} = useAuth();
+  const {setInitialSleepDelay } = useSleepTimer(); // Context 훅 사용
 
   const [localLanguage, setLocalLanguage] = useState<string>('');
   const {changeLanguage} = useContext(LanguageContext);
@@ -95,57 +100,29 @@ const LoginScreen: React.FC<LoginScreenProps> = ({navigation}) => {
   }, [state.isAuthenticated]);
 
 
-  // const updateFcmTokenOnChatUser = async () => {
-  //   const userId = state.user?.userId;
-
-  //   try {
-  //     const token = await getToken();
-  //     const config = {
-  //       headers: {
-  //         'Content-Type': 'application/json; charset=utf-8',
-  //         Authorization: `Bearer ${token}`,
-  //       },
-  //     };
-  //     const fcm = await getPromiseFcmToken();
-  //     console.log('Login.Screen - userId , fcm ', userId, fcm);
-  //     const params = {
-  //       userId: userId,
-  //       fcmToken: fcm,
-  //     };
-
-  //     const response: AxiosResponse = await axios.post(
-  //       `${baseURL}messages/fcm-update`,
-  //       JSON.stringify(params),
-  //       config,
-  //     );
-  //     console.log('Login.Screen - updateFcmTokenOnChatUser: ', response.data, response.status);
-  //     if(response.status === 200){
-  //       console.log('fcm update 성공 ');
-  //     }
-  //     else if(response.status === 201){
-  //       console.log('fcm 유지 성공 ');
-  //     }
-
-
-  //   } catch (error) {
-  //     console.log('updateFcmTokenOnChatUser error', error);
-  //   }
-
-  // };
-
    // 2024-05-26 : 자동 로그인을 위해서 추가,
    const loginLocalSaveAndGoToProduct = async () => {
     try {
-      // console.log('login/loginLocalSaveGoToProduct phoneNumber = ', state.user);
-      // await AsyncStorage.setItem('phoneNumber', state.user!.phoneNumber);
-
-
-
       // 2024-06-14 : 로그인 후에 home 메뉴로 간다.
+      const storedValue = await AsyncStorage.getItem(SLEEP_DELAY_KEY);
+      console.log('Login.Screen, loginLocalSaveAndGoToProduct storeValue', storedValue);
+      if (storedValue !== null) {
+        // If a value is found, parse it and set it
+        const parsedValue = parseFloat(storedValue);
+        setInitialSleepDelay(parsedValue);
+      } else {
+        // If no value is found, set the default to 0.1
+
+        setInitialSleepDelay(0.1);
+        // Also save this default value to storage immediately
+        await AsyncStorage.setItem(SLEEP_DELAY_KEY, '0.1');
+      }
 
       navigation.navigate('Home', {
         screen: 'PlaylistScreen',
       });
+
+      // 2025-06-24 14:34:45, SleepTimer 세팅을 한다. 
     } catch (error) {
       console.log('phoneNumber save to local error = ', error);
     }

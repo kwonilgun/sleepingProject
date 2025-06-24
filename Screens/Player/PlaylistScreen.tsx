@@ -562,7 +562,7 @@ const PlaylistScreen: React.FC<PlaylistScreenProps> = ({ navigation }) => {
         leftCustomView={LeftCustomComponent}
         rightPressActive={false}
         isCenterView={false}
-        centerText="🎶 음악 라이브러리"
+        centerText="🎶라이브러리"
         isRight = {false}
         isRightView={false}
         rightCustomView={RightCustomComponent} // Add the new RightCustomComponent

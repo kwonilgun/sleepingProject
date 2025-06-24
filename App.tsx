@@ -29,6 +29,7 @@ import {
 } from './context/store/LanguageContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import TrackPlayer from 'react-native-track-player';
+import { SleepTimerProvider } from './context/store/SleepTimerContext';
 // import {setupPlayer} from './services/TrackPlayerService'; // Adjust path
 
 
@@ -174,10 +175,12 @@ const App: React.FC = () => {
     <AuthProvider>
       <LanguageProvider>
         <Provider store={store}>
-          <NavigationContainer linking={linking}>
-            {/* <StartNotify /> */}
-            <MainTab initialUrl={initialUrl} />
-          </NavigationContainer>
+          <SleepTimerProvider>
+            <NavigationContainer linking={linking}>
+              {/* <StartNotify /> */}
+              <MainTab initialUrl={initialUrl} />
+            </NavigationContainer>
+          </SleepTimerProvider>
         </Provider>
       </LanguageProvider>
     </AuthProvider>

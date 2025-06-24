@@ -200,3 +200,5 @@ export const useTrackPlayerSetup = ({
     setRepeat();
   }, [repeatMode]);
 };
+
+export { RepeatMode };

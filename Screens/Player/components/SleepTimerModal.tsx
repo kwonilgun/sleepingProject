@@ -1,26 +1,62 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import MaterialIcon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { RFPercentage } from 'react-native-responsive-fontsize';
+import { useSleepTimer } from '../../../context/store/SleepTimerContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface SleepTimerModalProps {
   isVisible: boolean;
   onClose: () => void;
-  setInitialSleepDelay: (minutes: number) => void;
-  currentSelectedTime: number; // To show the currently active selection
-  // onStartTimer: (minutes: number) => void; // 추가된 prop
-
 }
 
-const sleepTimerOptions = [0.1,1, 5, 10, 15, 20, 30]; // Time options in minutes
+const sleepTimerOptions = [0.1, 1, 5, 10, 15, 20, 30]; // Time options in minutes
 
-const SleepTimerModal: React.FC<SleepTimerModalProps> = ({
-  isVisible,
-  onClose,
-  setInitialSleepDelay,
-  currentSelectedTime,
-  // onStartTimer, // 추가된 prop
-}) => {
+const SLEEP_DELAY_KEY = 'sleepTimerInitialDelay'; // Key for AsyncStorage
+
+const SleepTimerModal: React.FC<SleepTimerModalProps> = ({ isVisible, onClose }) => {
+  const { initialSleepDelay, setInitialSleepDelay } = useSleepTimer(); // Context 훅 사용
+  // const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  // // Effect to load the sleep delay from AsyncStorage when the component mounts
+    // useEffect(() => {
+    //   const loadSleepDelay = async () => {
+
+    //     try {
+    //       const storedValue = await AsyncStorage.getItem(SLEEP_DELAY_KEY);
+    //        console.log('SleepTimerModal, loadSleepDelay storeValue', storedValue);
+    //       if (storedValue !== null) {
+    //         // If a value is found, parse it and set it
+    //         const parsedValue = parseFloat(storedValue);
+    //         setInitialSleepDelay(parsedValue);
+    //       } else {
+    //         // If no value is found, set the default to 0.1
+
+    //         setInitialSleepDelay(0.1);
+    //         // Also save this default value to storage immediately
+    //         await AsyncStorage.setItem(SLEEP_DELAY_KEY, '0.1');
+    //       }
+    //     } catch (error) {
+    //       console.error('Failed to load sleep delay from storage:', error);
+    //       // Fallback to default if loading fails
+    //       setInitialSleepDelay(0.1);
+    //     } finally {
+    //       setIsLoading(false); // Loading is complete
+    //     }
+    //   };
+    //   loadSleepDelay();
+    // }, []); // Run only once on mount
+
+  // Save the selected value when closing the modal
+  const handleClose = async () => {
+    try {
+      await AsyncStorage.setItem(SLEEP_DELAY_KEY, initialSleepDelay.toString());
+      console.log('Sleep delay saved:', initialSleepDelay);
+    } catch (error) {
+      console.error('Failed to save sleep delay:', error);
+    }
+    onClose();
+  };
   return (
     <Modal
       animationType="slide"
@@ -36,18 +72,16 @@ const SleepTimerModal: React.FC<SleepTimerModalProps> = ({
               key={minutes}
               style={[
                 styles.sleepTimerOptionButton,
-                // currentSelectedTime === minutes && styles.sleepTimerOptionButtonActive,
-                // activeSleepTimerLabel === `${minutes}분 후 시작` && styles.sleepTimerOptionButtonActive,
+                // 활성화된 버튼 스타일은 Context의 initialSleepDelay 값과 비교하여 적용
+                initialSleepDelay === minutes && styles.sleepTimerOptionButtonActive,
               ]}
               onPress={() => {
-                // setAfterSleepTimer(minutes);
-                // onStartTimer(minutes); // 선택한 시간으로 수면 모드 시작
-                setInitialSleepDelay(minutes)
-                // onClose(); // Close modal after selection
+                setInitialSleepDelay(minutes); // Context의 값 업데이트
+                // onClose(); // 모달을 닫고 싶다면 주석 해제
               }}
             >
               <Text style={styles.sleepTimerOptionButtonText}>{minutes}분</Text>
-              {currentSelectedTime === minutes && (
+              {initialSleepDelay === minutes && ( // Context의 값과 비교
                 <MaterialIcon name="check" size={24} color="green" style={styles.checkmarkIcon} />
               )}
             </TouchableOpacity>
@@ -55,7 +89,7 @@ const SleepTimerModal: React.FC<SleepTimerModalProps> = ({
 
           <TouchableOpacity
             style={[styles.sleepTimerOptionButton, styles.sleepTimerOptionButtonClose]}
-            onPress={onClose}
+            onPress={handleClose}
           >
             <Text style={styles.sleepTimerOptionButtonText}>닫기</Text>
           </TouchableOpacity>

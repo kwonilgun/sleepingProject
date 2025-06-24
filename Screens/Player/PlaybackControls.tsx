@@ -3,7 +3,8 @@ import React from 'react';
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import MaterialIcon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { RFPercentage } from 'react-native-responsive-fontsize';
-import { RepeatMode } from '../../hooks/useTrackPlayerSetup'; // Import RepeatMode enum
+import { RepeatMode } from 'react-native-track-player';
+// import { RepeatMode } from './hooks/useTrackPlayerSetup'; // Import RepeatMode enum
 
 interface PlaybackControlsProps {
   isPlaying: boolean;
@@ -28,9 +29,9 @@ const PlaybackControls: React.FC<PlaybackControlsProps> = ({
     switch (repeatMode) {
       case RepeatMode.Off:
         return 'repeat-off';
-      case RepeatMode.RepeatOne:
+      case RepeatMode.Track:
         return 'repeat-once';
-      case RepeatMode.RepeatAll:
+      case RepeatMode.Queue:
         return 'repeat';
       default:
         return 'undo'; // Fallback
@@ -41,9 +42,9 @@ const PlaybackControls: React.FC<PlaybackControlsProps> = ({
     switch (repeatMode) {
       case RepeatMode.Off:
         return '#800080'; // Purple for off
-      case RepeatMode.RepeatOne:
+      case RepeatMode.Track:
         return '#FFA500'; // Orange for repeat one
-      case RepeatMode.RepeatAll:
+      case RepeatMode.Queue:
         return '#007bff'; // Blue for repeat all
       default:
         return '#800080';
