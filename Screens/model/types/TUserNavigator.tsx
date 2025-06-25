@@ -31,7 +31,7 @@ export type RootStackParamList = {
 
   UserMain: {screen: string};
   Favorite: {screen: string,
-    parmas: {
+    params: {
       favoritedTracks: PlaylistItem[]
     }
   };

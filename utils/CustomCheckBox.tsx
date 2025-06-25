@@ -13,7 +13,7 @@ const CustomCheckBox: React.FC<CustomCheckBoxProps> = ({ value, onValueChange })
       style={[styles.checkboxBase, value && styles.checkboxChecked]}
       onPress={() => onValueChange(!value)}
     >
-      {value && <View style={styles.checkboxInner} />}
+      {value && <View style={styles.checkmark} />}
     </TouchableOpacity>
   );
 };
@@ -33,11 +33,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#007bff',
     borderColor: '#007bff',
   },
-  checkboxInner: {
-    width: 12,
-    height: 12,
-    backgroundColor: '#fff',
-    borderRadius: 2,
+  checkmark: {
+    width: RFPercentage(1.5),
+    height: RFPercentage(0.8),
+    borderColor: 'white',
+    borderLeftWidth: 2,
+    borderBottomWidth: 2,
+    transform: [{ rotate: '-45deg' }],
+    marginBottom: RFPercentage(0.4),
   },
 });
 

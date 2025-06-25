@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable comma-dangle */
 /* eslint-disable react-native/no-inline-styles */
 /* eslint-disable react/no-unstable-nested-components */
@@ -23,13 +24,15 @@ import HeaderComponent from '../../utils/basicForm/HeaderComponents';
 import { RFPercentage } from 'react-native-responsive-fontsize';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import colors from '../../styles/colors';
-import TrackPlayer, {
+import {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   State,
   usePlaybackState,
 } from 'react-native-track-player';
 import AsyncStorage from '@react-native-async-storage/async-storage'; // Import AsyncStorage for persistence
 import { useFocusEffect } from '@react-navigation/native';
+
+
 
 // import { convertEucKrToUtf8 } from '../../utils/converEucKrToUtf8';
 
@@ -132,6 +135,7 @@ const PlaylistScreen: React.FC<PlaylistScreenProps> = ({ navigation }) => {
       clearTimeout(searchTimeoutRef.current);
     }
     searchTimeoutRef.current = setTimeout(() => {
+      // console.log('PlayListScreen useEffect playlistStructure, searchQuery', playlistStructure, searchQuery);
       setFlatDisplayList(updateFlatDisplayList(playlistStructure, searchQuery));
     }, 300);
 
@@ -185,6 +189,32 @@ const PlaylistScreen: React.FC<PlaylistScreenProps> = ({ navigation }) => {
     setFlatDisplayList(updateFlatDisplayList(updatedStructure, searchQuery));
   };
 
+//   function compareStrings(str1: string, str2: string): void {
+//     console.log(`'${str1}'의 길이: ${str1.length}`);
+//     console.log(`'${str2}'의 길이: ${str2.length}`);
+
+//     console.log('str1의 유니코드 값:');
+//     for (const char of str1) {
+//         console.log(`  '${char}': U+${char.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0')}`);
+//     }
+
+//     console.log('str2의 유니코드 값:');
+//     for (const char of str2) {
+//         console.log(`  '${char}': U+${char.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0')}`);
+//     }
+
+//     // 유니코드 정규화를 통한 비교
+//     // JavaScript/TypeScript의 내장 기능인 String.prototype.normalize() 사용
+//     const normalizedStr1 = str1.normalize('NFC'); // 또는 'NFD', 'NFKC', 'NFKD'
+//     const normalizedStr2 = str2.normalize('NFC');
+
+//     console.log(`\n정규화 후 str1: '${normalizedStr1}'`);
+//     console.log(`정규화 후 str2: '${normalizedStr2}'`);
+//     console.log(`정규화 후 비교 결과: ${normalizedStr1 === normalizedStr2}`);
+// }
+
+
+
   /**
    * 계층적 재생 목록 구조를 평탄화하여 FlatList 렌더링에 사용합니다.
    * isDirectoryOpen 상태를 고려하며, UI 들여쓰기를 위한 depth 속성을 추가합니다.
@@ -208,15 +238,27 @@ const PlaylistScreen: React.FC<PlaylistScreenProps> = ({ navigation }) => {
         const matchesSearch = (itemToMatch: PlaylistItem) => {
           if (!hasSearchQuery) return true;
 
-          const nameMatch = itemToMatch.name?.toLowerCase().includes(lowerCaseSearchQuery);
+          // 한글의 경우: 조합형 한글 (초성 + 중성 + 종성)을 완성형 한글 (하나의 코드 포인트)로 변환합니다. 예를 들어, str.normalize('NFC')를 사용하면 'ㄱㅏ'가 '가'로 변환됩니다. (실제로 한글은 완성형 코드 포인트가 이미 존재하므로 normalize()를 통해 조합형을 완성형으로 변환하는 방식은 잘 사용되지 않지만, 다른 언어의 경우에는 유용합니다.)
+
+
+          const nameMatch = itemToMatch.name?.normalize('NFC').toLowerCase().includes(lowerCaseSearchQuery);
+
+          // console.log('nameMatch, lowerCaseSearchQuery, itemToMatch.type', nameMatch, lowerCaseSearchQuery, itemToMatch.type);
+
 
           if (itemToMatch.type === 'file') {
-            const titleMatch = itemToMatch.title
-              ? itemToMatch.title.toLowerCase().includes(lowerCaseSearchQuery)
-              : false;
+            // console.log('itemToMatch.name:', itemToMatch.name);
+            // console.log('lowerCaseSearchQuery:', lowerCaseSearchQuery);
+
+            const titleMatch = itemToMatch.name
+                          ? itemToMatch.name.normalize('NFC').toLowerCase().trim().includes(lowerCaseSearchQuery)
+                          : false;
+            // console.log('titleMatch:', titleMatch);
             const artistMatch = itemToMatch.artist
-              ? itemToMatch.artist.toLowerCase().includes(lowerCaseSearchQuery)
+              ? itemToMatch.artist.normalize('NFC').toLowerCase().includes(lowerCaseSearchQuery)
               : false;
+
+            // console.log('itemToMatch.title, itemToMatch.artitst', itemToMatch.title, itemToMatch.artist);
             return nameMatch || titleMatch || artistMatch;
           }
           return nameMatch;
@@ -515,7 +557,7 @@ const PlaylistScreen: React.FC<PlaylistScreenProps> = ({ navigation }) => {
     // Filter all files to get only the favorited ones
     const favoritedFiles = allFiles.filter(file => favoriteTrackUris.includes(file.uri!));
 
-    navigation.navigate('Player', {
+    navigation.navigate('Favorite', {
       screen: 'FavoriteScreen', // Assuming 'FavoriteScreen' is a screen within your 'Player' navigator
       params: {
         favoritedTracks: favoritedFiles,
@@ -606,14 +648,23 @@ const PlaylistScreen: React.FC<PlaylistScreenProps> = ({ navigation }) => {
             style={styles.flatList}
             contentContainerStyle={styles.flatListContent}
           />
-          <View style={styles.buttonContainer}>
+          {/* <View style={styles.buttonContainer}>
             <Button
               title={`선택된 곡 재생 (${selectedTrackUris.length})`}
               onPress={handlePlaySelected}
               color="blue"
               disabled={selectedTrackUris.length === 0}
             />
-          </View>
+          </View> */}
+          {!isLoading && selectedTrackUris.length > 0 && (
+                  <TouchableOpacity
+                    style={styles.playAllButton}
+                    onPress={handlePlaySelected}
+                  >
+                    <FontAwesome name="play" size={RFPercentage(3)} color={colors.white} style={styles.playIcon} />
+                    <Text style={styles.playAllButtonText}>선택된 곡 재생 ({selectedTrackUris.length})</Text>
+                  </TouchableOpacity>
+                )}
         </View>
       </KeyboardAvoidingView>
     </WrapperContainer>
@@ -622,6 +673,32 @@ const PlaylistScreen: React.FC<PlaylistScreenProps> = ({ navigation }) => {
 
 // --- Styles ---
 const styles = StyleSheet.create({
+  playAllButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      height: RFPercentage(5),
+      justifyContent: 'center',
+      backgroundColor: colors.blue, // 버튼의 눈에 띄는 색상
+      // paddingVertical: 15,
+      borderRadius: 30, // 둥글게 만들기
+      // marginHorizontal: 20,
+      // marginBottom: 20,
+      // elevation: 5,
+      // shadowColor: '#000',
+      // shadowOffset: { width: 0, height: 2 },
+      // shadowOpacity: 0.25,
+      // shadowRadius: 3.84,
+    },
+  playAllButtonText: {
+      color: colors.white,
+      // height: RFPercentage(3),
+      fontSize: RFPercentage(2.2),
+      fontWeight: 'bold',
+      marginLeft: 10, // 아이콘과 텍스트 사이의 공간
+    },
+  playIcon: {
+    // 컴포넌트에 이미 크기와 색상이 설정되어 있음 (명확성을 위해 여기에 추가)
+  },
   container: {
     flex: 1,
     padding: 20,
