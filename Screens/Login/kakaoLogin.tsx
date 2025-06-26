@@ -13,7 +13,7 @@ export const handleKakaoLogin = async (dispatch: React.Dispatch<AuthAction>) => 
     const response = await sendTokenToServer(token.accessToken); // 또는 token.idToken (정책에 따라 선택)
     if(response.success){
       console.log('kakao login success data =', response.data);
-      loginBySns(response.data, dispatch);
+      loginBySns(response.data, dispatch, 'kakao');
 
     }
   } catch (error) {

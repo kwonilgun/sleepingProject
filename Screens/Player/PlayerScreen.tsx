@@ -15,7 +15,8 @@ import Voice from "@react-native-voice/voice";
 import TrackPlayer, {
   usePlaybackState,
   State,
-  useProgress
+  useProgress,
+  RepeatMode
 } from 'react-native-track-player';
 import { width } from '../../styles/responsiveSize';
 import ScreenBrightness from 'react-native-screen-brightness';
@@ -35,6 +36,7 @@ import { baseURL } from '../../assets/common/BaseUrl';
 import axios from 'axios';
 import { useSleepTimer } from '../../context/store/SleepTimerContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getRepeatMode } from 'react-native-track-player/lib/src/trackPlayer';
 
 // interface PlaylistItem {
 //   id: string;
@@ -77,6 +79,7 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ route, navigation }) => {
     volume,
     isMuted,
     setVolume,
+    setRepeatMode,
     togglePlayback,
     handleSkipPrevious,
     handleSkipNext,
@@ -127,9 +130,11 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ route, navigation }) => {
           await handleVoiceInteraction();
         }, afterSleepTimer * 60 * 1000);
       } else {
+
         sendSleepModeEndTime(new Date().toISOString());
         await ScreenBrightness.setBrightness(0.3);
         await TrackPlayer.stop();
+
         setSleepTimerActive(false);
         sleepTimerCountRef.current = 0;
         Alert.alert(
@@ -137,20 +142,24 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ route, navigation }) => {
           '5회 연속 확인하여 수면모드를 종료합니다.',
           [{ text: '확인', onPress: async () => {
             console.log('5회 연속 확인 수면모드 중단');
+            setRepeatMode(RepeatMode.Off); //2025-06-26 13:41:44, 반복모드 해제
           }}]
         );
       }
     } else {
+
       sendSleepModeEndTime(new Date().toISOString());
       await ScreenBrightness.setBrightness(0.3);
       await TrackPlayer.stop();
       setSleepTimerActive(false);
+
       sleepTimerCountRef.current = 0;
       Alert.alert(
         '수면모드',
         '음악이 중단되었습니다.',
         [{ text: '확인', onPress: async () => {
           console.log('음악이 중단되었습니다.');
+          setRepeatMode(RepeatMode.Off);  //2025-06-26 13:41:44, 반복모드 해제
         }}]
       );
     }
@@ -248,7 +257,7 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ route, navigation }) => {
     }
 
     try {
-      await Tts.speak('잠 들었나요?');
+      Tts.speak('잠 들었나요?');
     } catch (error) {
       console.error('TTS 오류:', error);
       handleVoiceInteractionResult(false);
@@ -265,6 +274,7 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ route, navigation }) => {
     sleepTimerCountRef.current = 0;
     await ScreenBrightness.setBrightness(0.3);
     await TrackPlayer.stop();
+    setRepeatMode(RepeatMode.Off); //2025-06-26 13:41:44, 반복모드 해제
     sendSleepModeEndTime(new Date().toISOString());
   };
 
@@ -281,18 +291,29 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ route, navigation }) => {
       return;
     }
 
+    setRepeatMode(RepeatMode.Queue); //2025-06-26 13:41:44, 반복모드 추가
+    
     setSleepTimerActive(true);
     sleepTimerCountRef.current = 0;
     if (playbackState.state !== State.Playing) {
       await TrackPlayer.play();
     }
 
+    // // When sleep mode is activated, set repeat mode to Queue
+    // toggleRepeatMode(RepeatMode.Queue);
+
     sendSleepModeStartTime(new Date().toISOString());
     console.log('startSleepTimer afterSleepTimer = ', afterSleepTimer);
 
-    sleepTimerRef.current = setTimeout(async () => {
-      await handleVoiceInteraction();
-    }, afterSleepTimer * 60 * 1000);
+
+    // Delay the setting of the sleep timer by 100ms
+    setTimeout(() => {
+      sleepTimerRef.current = setTimeout(async () => {
+        await handleVoiceInteraction();
+      }, afterSleepTimer * 60 * 1000);
+    }, 100);
+
+    
   };
 
   const rightCustomComponent = () => (

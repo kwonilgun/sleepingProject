@@ -4,13 +4,11 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useContext, useCallback, useEffect } from 'react';
 import {
-  KeyboardAvoidingView,
   Platform,
   ScrollView, View,
   Text,
   TouchableOpacity,
-  StyleSheet,
-  Button
+  StyleSheet
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { LoginScreenProps } from '../model/types/TUserNavigator';
@@ -24,20 +22,19 @@ import {
   useLanguage,
 } from '../../context/store/LanguageContext';
 // import {height} from '../../styles/responsiveSize';
-import { Image } from 'react-native';
 import GlobalStyles from '../../styles/GlobalStyles';
 import { appleAuth, AppleButton } from '@invertase/react-native-apple-authentication';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 
 import { GOOGLE_WEB_CLIENTID, width } from '../../assets/common/BaseValue';
-import { appleLogin, googleLogin, loginBySns } from './snsLogin';
+import { appleLogin, appleLogout, googleLogin, googleLogout, loginBySns } from './snsLogin';
 import { useAuth } from '../../context/store/Context.Manager';
 // import axios, { AxiosResponse } from 'axios';
 // import { baseURL } from '../../assets/common/BaseUrl';
 // import { getPromiseFcmToken } from '../Chat/notification/services';
 // import { getToken } from '../../utils/getSaveToken';
 import { alertMsg } from '../../utils/alerts/alertMsg';
-import { handleKakaoLogin } from './kakaoLogin';
+import { handleKakaoLogin, handleKakaoLogout } from './kakaoLogin';
 import { useSleepTimer } from '../../context/store/SleepTimerContext';
 
 export interface OAuthResponse {
@@ -96,8 +93,24 @@ const LoginScreen: React.FC<LoginScreenProps> = ({navigation}) => {
     if (state.isAuthenticated) {
       // updateFcmTokenOnChatUser();
       loginLocalSaveAndGoToProduct();
+    } else {
+      // Check the login method to determine which logout function to call
+      console.log('LoginScreen, state.loginMethod = ', state.loginMethod);
+      if (state.loginMethod === 'google') {
+        console.log('LoginScreen, google log out');
+        googleLogout();
+      } else if (state.loginMethod === 'apple') {
+        console.log('LoginScreen, apple log out');
+        appleLogout();
+        // handleAppleLogoutAndRevoke();
+      } else if (state.loginMethod === 'kakao') {
+        console.log('LoginScreen, kakao log out');
+        // Assuming you have a handleKakaoLogout function
+        handleKakaoLogout();
+      }
+      // No logout needed for 'email' or if loginMethod is null/undefined
     }
-  }, [state.isAuthenticated]);
+  }, [state.isAuthenticated, state.loginMethod]);
 
 
    // 2024-05-26 : 자동 로그인을 위해서 추가,
@@ -197,7 +210,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({navigation}) => {
 
       if(response.success){
         console.log('google login success data = ', response.data);
-        loginBySns(response.data, dispatch);
+        loginBySns(response.data, dispatch, 'google');
       }
     } catch (error) {
       alertMsg('에러', '구글 로그인 에러, 네트웍이 연결이 되어있는지 체크해보세요')
@@ -213,7 +226,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({navigation}) => {
 
       if(response.success){
         console.log('google login success data = ', response.data);
-        loginBySns(response.data, dispatch);
+        loginBySns(response.data, dispatch, 'apple');
       }
     } catch (error) {
       alertMsg('에러', '애플 로그인 에러, 네트웍이 연결이 되어있는지 체크해보세요')

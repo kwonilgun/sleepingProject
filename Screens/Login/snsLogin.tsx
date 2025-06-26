@@ -29,6 +29,7 @@ import { saveToken } from '../../utils/getSaveToken';
 import { OAuthResponse } from './Login.Screen';
 import { jwtDecode } from 'jwt-decode';
 import { UserFormInput } from '../model/interface/IAuthInfo';
+import { Alert } from 'react-native';
 
 /**
  * Starts the Sign In flow.
@@ -45,14 +46,6 @@ export async function appleLogin() : Promise<{ success: boolean; data?: any; err
 
     console.log('appleAuthRequestResponse', appleAuthRequestResponse);
 
-    // const {
-    //   user: newUser,
-    //   email,
-    //   fullName,
-    //   identityToken,
-    //   nonce,
-    //   realUserStatus /* etc */,
-    // } = appleAuthRequestResponse;
 
     // 인증 상태 확인
     const credentialState = await appleAuth.getCredentialStateForUser(appleAuthRequestResponse.user);
@@ -99,6 +92,83 @@ export async function appleLogin() : Promise<{ success: boolean; data?: any; err
   }
 }
 
+export const handleAppleLogoutAndRevoke = async (): Promise<void> => {
+  try {
+    // 1. 사용자에게 계정 해제 의사 확인 (선택 사항)
+    // 실제 프로덕션에서는 사용자에게 계정 연동을 해제할 것인지 다시 한 번 묻는 것이 좋습니다.
+    // const confirm = async () => { Alert.alert(
+    //   '계정 연결 해제',
+    //   'Apple ID와의 연결을 정말로 해제하시겠습니까? 다시 로그인하려면 Apple ID로 로그인해야 합니다.',
+    //   [{ text: "취소" }, { text: '확인', onPress: () => true }]
+    // );};
+    // const result = confirm();
+    // if (!result) {
+    //   return;
+    // }
+
+    // 2. Apple로부터 authorizationCode 획득
+    // 기존 세션의 authorizationCode를 얻기 위해 REFRESH 오퍼레이션을 사용합니다.
+    // REVOKE를 직접 사용할 수도 있으나, REFRESH를 통해 코드를 얻어 백엔드로 보내는 것이 일반적입니다.
+    const appleAuthRequestResponse = await appleAuth.performRequest({
+      requestedOperation: appleAuth.Operation.REFRESH, // authorizationCode를 얻기 위함
+    });
+
+    const { authorizationCode } = appleAuthRequestResponse;
+
+    if (authorizationCode) {
+      console.log('Obtained authorizationCode for revocation:', authorizationCode);
+
+      // 3. authorizationCode를 백엔드 서버로 전송하여 Revoke 요청
+      // const response = await fetch('apple/revoke', {
+      //   method: 'POST',
+      //   headers: {
+      //     'Content-Type': 'application/json',
+      //     // 필요한 경우 Authorization 헤더에 사용자 세션 토큰 포함
+      //     // 'Authorization': `Bearer ${yourAppSessionToken}`,
+      //   },
+      //   body: JSON.stringify({ authorizationCode }),
+      // });
+
+      // 백엔드로 토큰 전송
+      const response: AxiosResponse = await axios.post(
+        `${baseURL}users/apple/revoke`,
+        JSON.stringify({
+        token: authorizationCode,
+        }),
+        {
+          headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+          },
+        },
+      );
+
+      if (response.status === 200) {
+        console.log('Apple Sign-In 연동이 성공적으로 해제되었습니다.');
+        // 앱 내에서 사용자 로그인 상태를 초기화합니다.
+        // 예: 로컬 스토리지에서 사용자 토큰 삭제, UI를 로그인 화면으로 전환
+        // await AsyncStorage.removeItem('userToken');
+        // navigateToLoginScreen();
+        Alert.alert('Apple ID와의 연결이 해제되었습니다.');
+      } else {
+        const errorData = await response.data;
+        console.error('백엔드에서 Apple Sign-In 연동 해제 실패:', errorData);
+        Alert.alert(`Apple ID 연결 해제 실패: ${errorData.message || '알 수 없는 오류'}`);
+      }
+    } else {
+      console.warn('authorizationCode를 얻을 수 없습니다. Apple ID 연동 해제를 진행할 수 없습니다.');
+      Alert.alert('Apple ID 연결 해제에 필요한 정보를 얻지 못했습니다.');
+    }
+  } catch (error) {
+    console.error('Apple Sign-Out (Revoke) 클라이언트 에러:', error);
+    Alert.alert(`Apple ID 연결 해제 중 예상치 못한 오류 발생: ${error}`);
+    // if (error.code === appleAuth.Error.CANCELED) {
+    //   console.log('사용자가 Apple ID 연동 해제 요청을 취소했습니다.');
+    // } else {
+    //   alert(`Apple ID 연결 해제 중 예상치 못한 오류 발생: ${error.message}`);
+    // }
+  }
+};
 export const appleLogout = async (): Promise<void> => {
   try {
     await appleAuth.performRequest({
@@ -151,7 +221,7 @@ export const googleLogout = async (): Promise<void> => {
 };
 
 
-export const loginBySns = (data: OAuthResponse , dispatch: React.Dispatch<AuthAction>) => {
+export const loginBySns = (data: OAuthResponse , dispatch: React.Dispatch<AuthAction>, method: 'apple' | 'google' | 'kakao' | 'email' | null) => {
   console.log('loginBySns...  ');
   saveToken(data.token);
 
@@ -164,7 +234,7 @@ export const loginBySns = (data: OAuthResponse , dispatch: React.Dispatch<AuthAc
           userId: decoded.userId === null || undefined ? '' : decoded.userId,
           isAdmin: decoded.isAdmin,
         };
-    dispatch({type: 'LOGIN', payload: userData});
+    dispatch({type: 'LOGIN', payload: {user: userData, loginMethod: method!}});
   } catch (error){
     console.error('snsLogin, decoded error =', error);
   }

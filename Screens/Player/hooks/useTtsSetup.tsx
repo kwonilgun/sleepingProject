@@ -113,14 +113,25 @@ export const useTtsSetup = ({
       // ... 기존의 Voice 이벤트 리스너 설정 ...
 
       return () => {
-        // TTS 리스너 제거
-        Tts.removeEventListener('tts-start', onSpeechStart);
-        Tts.removeEventListener('tts-progress', onSpeechProgress);
-        Tts.removeEventListener('tts-finish', onSpeechFinish);
-        Tts.removeEventListener('tts-cancel', onSpeechCancel);
+        console.log('useTtsSetup, useEffect, tts 리스너 제거 ....')
+        // Tts 객체와 removeEventListener 존재 여부 디버깅
+        console.log('Tts in cleanup:', Tts);
+        console.log('typeof Tts.removeEventListener in cleanup:', typeof (Tts as any).removeEventListener); // 타입 캐스팅으로 에러 회피
 
-        // Tts.stop(); // Uncomment if you want to stop TTS on unmount
-        // ... 기존의 Voice 정리 코드 ...
+        if (Tts && typeof (Tts as any).removeEventListener === 'function') { // typeof 체크 추가
+          // Tts.removeEventListener('tts-start', onSpeechStart);
+          // Tts.removeEventListener('tts-progress', onSpeechProgress);
+          // Tts.removeEventListener('tts-finish', onSpeechFinish);
+          // Tts.removeEventListener('tts-cancel', onSpeechCancel);
+        } else {
+            console.warn('Tts 또는 Tts.removeEventListener가 유효하지 않아 리스너를 제거할 수 없습니다.');
+        }
+
+        // Tts.stop()은 리스너 제거와는 별개로 Tts 재생을 멈추는 역할을 합니다.
+        // 리스너 제거 문제가 아니더라도 Tts 재생이 필요 없으면 호출하는 것이 좋습니다.
+        if (Tts && typeof Tts.stop === 'function') {
+            // Tts.stop();
+        }
       };
 }, []);
 

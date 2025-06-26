@@ -1,13 +1,13 @@
 // src/screens/PlayerScreen/hooks/usePlayerControls.ts
 import { useState } from 'react';
 import TrackPlayer, { State } from 'react-native-track-player';
-import { useProgress } from 'react-native-track-player'; // Import useProgress
+import { useProgress, RepeatMode } from 'react-native-track-player'; // Import useProgress
 
-enum RepeatMode {
-  Off,
-  RepeatOne,
-  RepeatAll,
-}
+// enum RepeatMode {
+//   Off,
+//   RepeatOne,
+//   RepeatAll,
+// }
 
 interface UsePlayerControlsProps {
   currentTrackIndex: number;
@@ -49,7 +49,7 @@ export const usePlayerControls = ({
     if (currentTrackIndex < selectedTracksLength - 1) {
       await TrackPlayer.skipToNext();
     } else {
-      if (repeatMode === RepeatMode.RepeatAll) {
+      if (repeatMode === RepeatMode.Queue) {
         // TrackPlayerRepeatMode.Queue is already handled by TrackPlayer
       } else {
         await TrackPlayer.pause();
@@ -63,10 +63,10 @@ export const usePlayerControls = ({
     setRepeatMode((prevMode) => {
       switch (prevMode) {
         case RepeatMode.Off:
-          return RepeatMode.RepeatOne;
-        case RepeatMode.RepeatOne:
-          return RepeatMode.RepeatAll;
-        case RepeatMode.RepeatAll:
+          return RepeatMode.Track;
+        case RepeatMode.Track:
+          return RepeatMode.Queue;
+        case RepeatMode.Queue:
           return RepeatMode.Off;
         default:
           return RepeatMode.Off;
@@ -78,9 +78,9 @@ export const usePlayerControls = ({
     switch (repeatMode) {
       case RepeatMode.Off:
         return 'repeat-off';
-      case RepeatMode.RepeatOne:
+      case RepeatMode.Track:
         return 'repeat-once';
-      case RepeatMode.RepeatAll:
+      case RepeatMode.Queue:
         return 'repeat';
       default:
         return 'undo';
@@ -91,9 +91,9 @@ export const usePlayerControls = ({
     switch (repeatMode) {
       case RepeatMode.Off:
         return '#800080'; // Purple for off
-      case RepeatMode.RepeatOne:
+      case RepeatMode.Track:
         return '#FFA500'; // Orange for repeat one
-      case RepeatMode.RepeatAll:
+      case RepeatMode.Queue:
         return '#007bff'; // Blue for repeat all
       default:
         return '#800080';
@@ -120,6 +120,7 @@ export const usePlayerControls = ({
     volume,
     isMuted,
     setVolume,
+    setRepeatMode,
     togglePlayback,
     handleSkipPrevious,
     handleSkipNext,
