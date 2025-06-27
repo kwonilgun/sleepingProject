@@ -20,8 +20,8 @@ const CustomCheckBox: React.FC<CustomCheckBoxProps> = ({ value, onValueChange })
 
 const styles = StyleSheet.create({
   checkboxBase: {
-    width: RFPercentage(3),
-    height: RFPercentage(3),
+    width: RFPercentage(3.5),
+    height: RFPercentage(3.5),
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 4,
@@ -34,8 +34,8 @@ const styles = StyleSheet.create({
     borderColor: '#007bff',
   },
   checkmark: {
-    width: RFPercentage(1.5),
-    height: RFPercentage(0.8),
+    width: RFPercentage(2),
+    height: RFPercentage(1),
     borderColor: 'white',
     borderLeftWidth: 2,
     borderBottomWidth: 2,

@@ -53,6 +53,7 @@ export interface PlaylistItem {
 }
 
 const FAVORITE_TRACKS_KEY = '@favoriteTracks'; // Key for AsyncStorage
+const SELECTED_TRACKS_KEY = '@selectedTracks'; // New Key for AsyncStorage
 
 const PlaylistScreen: React.FC<PlaylistScreenProps> = ({ navigation }) => {
   const playbackState = usePlaybackState();
@@ -68,6 +69,35 @@ const PlaylistScreen: React.FC<PlaylistScreenProps> = ({ navigation }) => {
   // New state for managing favorite track URIs
   const [favoriteTrackUris, setFavoriteTrackUris] = useState<string[]>([]);
 
+  /**
+   * Persists track URIs to AsyncStorage for a given key.
+   * @param {string} key - The AsyncStorage key.
+   * @param {string[]} uris - The array of URIs to save.
+   */
+  const saveTracksToStorage = async (key: string, uris: string[]) => {
+    try {
+      await AsyncStorage.setItem(key, JSON.stringify(uris));
+      console.log(`${key} tracks saved successfully.`);
+    } catch (error) {
+      console.error(`Error saving ${key} tracks:`, error);
+    }
+  };
+
+  /**
+   * Loads track URIs from AsyncStorage for a given key.
+   * @param {string} key - The AsyncStorage key.
+   * @returns {Promise<string[]>} The array of URIs.
+   */
+  const loadTracksFromStorage = async (key: string): Promise<string[]> => {
+    try {
+      const storedData = await AsyncStorage.getItem(key);
+      return storedData ? JSON.parse(storedData) : [];
+    } catch (error) {
+      console.error(`Error loading ${key} tracks:`, error);
+      return [];
+    }
+  };
+
   useFocusEffect(
     useCallback(() => {
       console.log('PlaylistScreen is loading...');
@@ -78,17 +108,20 @@ const PlaylistScreen: React.FC<PlaylistScreenProps> = ({ navigation }) => {
           const res = await axios.get<PlaylistItem[]>(`${baseURL}stream/playlist/db`);
 
           // Fetch favorite tracks from AsyncStorage
-          const storedFavorites = await AsyncStorage.getItem(FAVORITE_TRACKS_KEY);
-          const initialFavoriteUris = storedFavorites ? JSON.parse(storedFavorites) : [];
-          setFavoriteTrackUris(initialFavoriteUris);
+          const storedFavorites = await loadTracksFromStorage(FAVORITE_TRACKS_KEY);
+          setFavoriteTrackUris(storedFavorites);
+
+          // Fetch selected tracks from AsyncStorage
+          const storedSelected = await loadTracksFromStorage(SELECTED_TRACKS_KEY);
+          setSelectedTrackUris(storedSelected); // Set the selected tracks state
 
           const initializeItems = (items: PlaylistItem[]): PlaylistItem[] => {
             return items.map(item => {
               const newItem = {
                 ...item,
-                isSelected: false,
+                isSelected: item.type === 'file' && item.uri ? storedSelected.includes(item.uri) : false, // Set isSelected based on stored data
                 isDirectoryOpen: false,
-                isFavorite: item.type === 'file' && item.uri ? initialFavoriteUris.includes(item.uri) : false, // Set isFavorite based on stored data
+                isFavorite: item.type === 'file' && item.uri ? storedFavorites.includes(item.uri) : false, // Set isFavorite based on stored data
               };
               if (item.type === 'folder' && item.children) {
                 newItem.children = initializeItems(item.children);
@@ -147,18 +180,6 @@ const PlaylistScreen: React.FC<PlaylistScreenProps> = ({ navigation }) => {
   }, [searchQuery, playlistStructure]);
 
   /**
-   * Persists favorite track URIs to AsyncStorage.
-   */
-  const saveFavoriteTracks = async (uris: string[]) => {
-    try {
-      await AsyncStorage.setItem(FAVORITE_TRACKS_KEY, JSON.stringify(uris));
-      console.log('Favorite tracks saved successfully.');
-    } catch (error) {
-      console.error('Error saving favorite tracks:', error);
-    }
-  };
-
-  /**
    * Toggles the favorite status of a specific music file.
    * @param {string} id - The unique ID (path) of the track to toggle.
    */
@@ -172,7 +193,7 @@ const PlaylistScreen: React.FC<PlaylistScreenProps> = ({ navigation }) => {
             const updatedUris = newFavoriteStatus
               ? [...prevUris, item.uri!] // Add URI if favoriting
               : prevUris.filter(uri => uri !== item.uri); // Remove URI if unfavoriting
-            saveFavoriteTracks(updatedUris); // Persist updated favorites
+            saveTracksToStorage(FAVORITE_TRACKS_KEY, updatedUris); // Persist updated favorites
             return updatedUris;
           });
           return { ...item, isFavorite: newFavoriteStatus };
@@ -333,6 +354,7 @@ const PlaylistScreen: React.FC<PlaylistScreenProps> = ({ navigation }) => {
     };
     collectSelectedUris(updatedStructure);
     setSelectedTrackUris(newSelectedUris);
+    saveTracksToStorage(SELECTED_TRACKS_KEY, newSelectedUris); // Persist selected tracks
 
     setFlatDisplayList(updateFlatDisplayList(updatedStructure, searchQuery));
   };
@@ -371,7 +393,7 @@ const PlaylistScreen: React.FC<PlaylistScreenProps> = ({ navigation }) => {
           return { ...item, isSelected: true };
         }
         if (item.type === 'file' && item.uri && !urisToSelect.has(item.uri)) {
-          return { ...item, isSelected: false };
+          return { ...item, isSelected: false }; // Deselect tracks not in the current display list
         }
         if (item.type === 'folder' && item.children) {
           return { ...item, children: updateRecursive(item.children) };
@@ -395,6 +417,7 @@ const PlaylistScreen: React.FC<PlaylistScreenProps> = ({ navigation }) => {
     };
     collectSelectedUris(updatedStructure);
     setSelectedTrackUris(newSelectedUris);
+    saveTracksToStorage(SELECTED_TRACKS_KEY, newSelectedUris); // Persist selected tracks
 
     setFlatDisplayList(updateFlatDisplayList(updatedStructure, searchQuery));
   };
@@ -417,6 +440,7 @@ const PlaylistScreen: React.FC<PlaylistScreenProps> = ({ navigation }) => {
     const updatedStructure = updateRecursive(playlistStructure);
     setPlaylistStructure(updatedStructure);
     setSelectedTrackUris([]);
+    saveTracksToStorage(SELECTED_TRACKS_KEY, []); // Clear selected tracks from storage
     setFlatDisplayList(updateFlatDisplayList(updatedStructure, searchQuery));
   };
 
@@ -461,7 +485,7 @@ const PlaylistScreen: React.FC<PlaylistScreenProps> = ({ navigation }) => {
           >
             <FontAwesome
               name={item.isFavorite ? 'star' : 'star-o'}
-              size={RFPercentage(2.5)}
+              size={RFPercentage(3.5)}
               color={item.isFavorite ? colors.lightBlue : colors.grey}
             />
           </TouchableOpacity>
@@ -756,7 +780,7 @@ const styles = StyleSheet.create({
   },
   playlistItemText: {
     marginLeft: RFPercentage(1),
-    fontSize: RFPercentage(1.3),
+    fontSize: RFPercentage(2),
     flex: 1,
     flexShrink: 1,
     color: '#444',
