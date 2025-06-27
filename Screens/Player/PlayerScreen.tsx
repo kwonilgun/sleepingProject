@@ -64,7 +64,7 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ route, navigation }) => {
   const [currentTrackIndex, setCurrentTrackIndex] = useState<number>(0);
   const [displayTitle, setDisplayTitle] = useState('선택된 곡 없음');
   const [sleepTimerActive, setSleepTimerActive] = useState<boolean>(false);
-  const [afterSleepTimer, setAfterSleepTimer] = useState<number>(initialSleepDelay || 0.1);
+  // const [afterSleepTimer, setAfterSleepTimer] = useState<number>(initialSleepDelay || 0.1);
 
   // ref 관리
   const sleepTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -72,6 +72,7 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ route, navigation }) => {
   const recognizedTextRef = useRef('');
   const speechTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const voiceResponseHandledRef = useRef(false);
+  const afterSleepTimerRef = useRef<number>(0.1);
 
   // 플레이어 컨트롤 훅
   const {
@@ -107,7 +108,9 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ route, navigation }) => {
 
     console.log('PlayerScreen useEffect initialSleepDelay', initialSleepDelay);
     if (initialSleepDelay) {
-      setAfterSleepTimer(initialSleepDelay);
+      // setAfterSleepTimer(initialSleepDelay);
+      // 2025-06-27 22:35:58, initialSleepDelay 값이 초기화 되는 문제 해결 
+      afterSleepTimerRef.current = initialSleepDelay;
     }
 
     return () => {
@@ -126,9 +129,11 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ route, navigation }) => {
       sleepTimerCountRef.current += 1;
       if (sleepTimerCountRef.current < 5) {
         await TrackPlayer.play();
+        console.log('handleVoiceInteractionResult afterSleepTimerRef.current = ', afterSleepTimerRef.current);
+        console.log('handleVoiceInteractionResult initialSleepDelay = ', initialSleepDelay);
         sleepTimerRef.current = setTimeout(async () => {
           await handleVoiceInteraction();
-        }, afterSleepTimer * 60 * 1000);
+        }, afterSleepTimerRef.current * 60 * 1000);
       } else {
 
         sendSleepModeEndTime(new Date().toISOString());
@@ -291,29 +296,21 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ route, navigation }) => {
       return;
     }
 
-    setRepeatMode(RepeatMode.Queue); //2025-06-26 13:41:44, 반복모드 추가
-    
+    await setRepeatMode(RepeatMode.Queue); // 2025-06-26 13:41:44, 반복모드 추가
     setSleepTimerActive(true);
     sleepTimerCountRef.current = 0;
     if (playbackState.state !== State.Playing) {
       await TrackPlayer.play();
     }
 
-    // // When sleep mode is activated, set repeat mode to Queue
-    // toggleRepeatMode(RepeatMode.Queue);
-
     sendSleepModeStartTime(new Date().toISOString());
-    console.log('startSleepTimer afterSleepTimer = ', afterSleepTimer);
+    console.log('startSleepTimer afterSleepTimerRef.current = ', afterSleepTimerRef.current);
+    console.log('startSleepTimer initialSleepDelay = ', initialSleepDelay);
 
-
-    // Delay the setting of the sleep timer by 100ms
-    setTimeout(() => {
-      sleepTimerRef.current = setTimeout(async () => {
-        await handleVoiceInteraction();
-      }, afterSleepTimer * 60 * 1000);
-    }, 100);
-
-    
+    // This setTimeout will now run immediately after all preceding awaits are resolved.
+    sleepTimerRef.current = setTimeout(async () => {
+      await handleVoiceInteraction();
+    }, afterSleepTimerRef.current * 60 * 1000);
   };
 
   const rightCustomComponent = () => (

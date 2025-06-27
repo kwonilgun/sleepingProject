@@ -8,7 +8,7 @@
  * App's main entry point for initialization, audio playback, and navigation setup.
  */
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { Provider } from 'react-redux';
 import {
@@ -18,6 +18,7 @@ import {
   StyleSheet,
   Text,
   View,
+  TouchableOpacity, // Import TouchableOpacity for the stop button
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import TrackPlayer, { Event, State, Capability } from 'react-native-track-player';
@@ -67,8 +68,12 @@ const setupTrackPlayer = async () => {
 const App: React.FC = () => {
   const [isAppReady, setIsAppReady] = useState(false);
   const [isPlayingIntro, setIsPlayingIntro] = useState(false);
+  const [showStopButton, setShowStopButton] = useState(false); // New state for stop button visibility
   // initialUrl is not used in MainTab, consider removing if deep linking is handled differently
-  const [initialUrl, setInitialUrl] = useState<string | null>(null); 
+  const [initialUrl, setInitialUrl] = useState<string | null>(null);
+
+  // Ref to store the promise's resolve function for external control
+  const introAudioPromiseResolve = useRef<((value: boolean) => void) | null>(null);
 
   const linking = {
     prefixes: ['myapp://'],
@@ -99,7 +104,7 @@ const App: React.FC = () => {
   /**
    * Plays the intro audio if it hasn't been played before.
    * Sets listeners for playback completion and errors.
-   * @returns {Promise<void>}
+   * @returns {Promise<boolean>} A promise that resolves to true if intro played, false if skipped or stopped.
    */
   const playIntroAudio = useCallback(async () => {
     try {
@@ -112,6 +117,7 @@ const App: React.FC = () => {
 
       console.log('Playing intro audio...');
       setIsPlayingIntro(true);
+      setShowStopButton(true); // Show stop button when intro starts playing
 
       // Reset any previous state and add the intro track
       await TrackPlayer.reset();
@@ -125,12 +131,15 @@ const App: React.FC = () => {
       await TrackPlayer.play();
 
       return new Promise<boolean>((resolve, reject) => {
+        introAudioPromiseResolve.current = resolve; // Store resolve function
+
         const playbackQueueEndedListener = TrackPlayer.addEventListener(
           Event.PlaybackQueueEnded,
           async ({ track }) => {
             console.log('TrackPlayer: Playback queue ended for track:', track);
             await AsyncStorage.setItem(HAS_PLAYED_INTRO_AUDIO_KEY, 'true');
             setIsPlayingIntro(false);
+            setShowStopButton(false); // Hide stop button
             playbackQueueEndedListener.remove(); // Clean up listener
             playbackErrorListener.remove(); // Clean up error listener as well
             await TrackPlayer.reset(); // Clear queue after successful playback
@@ -142,6 +151,7 @@ const App: React.FC = () => {
           console.error('TrackPlayer: Playback error', error);
           Alert.alert('오디오 재생 실패', '소개 오디오 재생 중 오류가 발생했습니다.');
           setIsPlayingIntro(false);
+          setShowStopButton(false); // Hide stop button
           playbackQueueEndedListener.remove(); // Clean up listener
           playbackErrorListener.remove(); // Clean up error listener
           TrackPlayer.reset(); // Reset on error
@@ -152,8 +162,30 @@ const App: React.FC = () => {
       console.error('Error during intro audio playback:', e);
       Alert.alert('오디오 재생 오류', `소개 오디오 재생 중 문제가 발생했습니다: ${e.message || '알 수 없는 오류'}`);
       setIsPlayingIntro(false);
+      setShowStopButton(false); // Hide stop button
       await TrackPlayer.reset();
       return false; // Indicate failure
+    }
+  }, []);
+
+  /**
+   * Handles stopping the intro audio manually.
+   */
+  const handleStopIntroAudio = useCallback(async () => {
+    console.log('Stopping intro audio manually...');
+    try {
+      await TrackPlayer.stop();
+      await TrackPlayer.reset(); // Clear the queue
+      await AsyncStorage.setItem(HAS_PLAYED_INTRO_AUDIO_KEY, 'true'); // Mark as played
+      setIsPlayingIntro(false);
+      setShowStopButton(false); // Hide the button
+      if (introAudioPromiseResolve.current) {
+        introAudioPromiseResolve.current(false); // Resolve the promise, indicating it was stopped manually
+        introAudioPromiseResolve.current = null; // Clear the ref
+      }
+    } catch (error) {
+      console.error('Error stopping intro audio:', error);
+      Alert.alert('오류', '오디오 중지 중 문제가 발생했습니다.');
     }
   }, []);
 
@@ -172,6 +204,7 @@ const App: React.FC = () => {
       console.log = () => {};
     } else {
       console.log('This is in debug mode. Console.log is active.');
+      // 2025-06-27 15:50:42, Intro audio를 테스트하기 위해서 추가
       AsyncStorage.setItem(HAS_PLAYED_INTRO_AUDIO_KEY, 'false');
     }
 
@@ -187,12 +220,13 @@ const App: React.FC = () => {
         if (playedIntro) {
           console.log('Intro audio played successfully.');
         } else {
-          console.log('Intro audio skipped or already played.');
+          console.log('Intro audio skipped or already played/stopped.');
         }
       } catch (error) {
         console.warn('Intro audio handling completed with errors, but app proceeds.');
       } finally {
         setIsAppReady(true); // Mark app as ready regardless of audio outcome
+        setShowStopButton(false); // Ensure stop button is hidden once app is ready
       }
     };
 
@@ -213,6 +247,11 @@ const App: React.FC = () => {
         <Text style={styles.loadingText}>
           {isPlayingIntro ? '소개 오디오 재생 중...' : '앱 초기화 중...'}
         </Text>
+        {isPlayingIntro && showStopButton && ( // Conditionally render the stop button
+          <TouchableOpacity style={styles.stopButton} onPress={handleStopIntroAudio}>
+            <Text style={styles.stopButtonText}>재생 중단</Text>
+          </TouchableOpacity>
+        )}
       </View>
     );
   }
@@ -244,6 +283,18 @@ const styles = StyleSheet.create({
     marginTop: 20,
     fontSize: 16,
     color: '#333',
+  },
+  stopButton: {
+    marginTop: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    backgroundColor: '#ff4d4d',
+    borderRadius: 5,
+  },
+  stopButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 
