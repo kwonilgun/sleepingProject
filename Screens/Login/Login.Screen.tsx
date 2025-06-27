@@ -1,5 +1,4 @@
 /* eslint-disable react/no-unstable-nested-components */
-/* eslint-disable prettier/prettier */
 /* eslint-disable react-native/no-inline-styles */
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useContext, useCallback, useEffect } from 'react';
@@ -107,6 +106,15 @@ const LoginScreen: React.FC<LoginScreenProps> = ({navigation}) => {
         console.log('LoginScreen, kakao log out');
         // Assuming you have a handleKakaoLogout function
         handleKakaoLogout();
+      } else{
+        // 2025-06-27 10:26:31, 자동 로그인 구현....
+        if(Platform.OS === 'ios'){
+          console.log('Login.Screen: useEffect,  인증 안되었고, 상태는 초기 상태, 플랫폼은 apple ios ');
+          checkAppleLogin();
+        } else{
+           console.log('Login.Screen: useEffect,  인증 안되었고, 상태는 초기 상태, 플랫폼은 android ios ');
+        }
+
       }
       // No logout needed for 'email' or if loginMethod is null/undefined
     }
@@ -342,14 +350,14 @@ const LoginScreen: React.FC<LoginScreenProps> = ({navigation}) => {
                     </TouchableOpacity>
                   )}
 
-              <TouchableOpacity
+              {/* <TouchableOpacity
                       style={styles.appleButton} // 동일한 스타일 적용
                       onPress={async () => {
                         console.log('카카오 로그인  click');
                        checkKakaoLogin();
                       }}>
                       <Text style={styles.appleButtonText}>카카오 로그인</Text>
-                    </TouchableOpacity>
+                    </TouchableOpacity> */}
             </View>
           </ScrollView>
 

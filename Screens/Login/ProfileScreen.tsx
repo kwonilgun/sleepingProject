@@ -167,14 +167,14 @@ const ProfileScreen: React.FC<ProfileScreenProps> = props => {
                         setShowSleepTimerOptions(true);
                       }}
                       style={styles.HeadTitleText}>
-                        수면 체크 주기
+                        수면 체크 시간
                         {'  ▶️ ' } {/* 인디케이터 추가 */}
                   </Text>
 
                   <Text
                       onPress={fetchAndShowSleepRecords} // Call the new function here
                       style={styles.HeadTitleText}>
-                        잠드는 시간 리스트
+                        수면 기록
                         {'  ▶️ ' } {/* 인디케이터 추가 */}
                   </Text>
 

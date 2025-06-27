@@ -1,56 +1,80 @@
-
 /*
  * File: App.tsx
  * Project: root_project
  * File Created: Wednesday, 14th February 2024
  * Author: Kwonilgun(권일근) (kwonilgun@naver.com)
  * Copyright : 루트원 AI
- * 
- * ddd
+ *
+ * App's main entry point for initialization, audio playback, and navigation setup.
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { Provider } from 'react-redux';
-import { AuthProvider } from './context/store/Context.Manager';
-import MainTab from './Navigator/MainTab';
-import store from './Redux/Cart/Store/store';
 import {
-  Linking,
+  ActivityIndicator,
+  Alert,
   LogBox,
-  PermissionsAndroid,
-  Platform
+  StyleSheet,
+  Text,
+  View,
 } from 'react-native';
-
-// import messaging from '@react-native-firebase/messaging';
-import strings from './constants/lang';
-import {
-  LanguageProvider
-} from './context/store/LanguageContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import TrackPlayer from 'react-native-track-player';
+import TrackPlayer, { Event, State, Capability } from 'react-native-track-player';
+
+// Contexts & Redux
+import { AuthProvider } from './context/store/Context.Manager';
+import { LanguageProvider } from './context/store/LanguageContext';
 import { SleepTimerProvider } from './context/store/SleepTimerContext';
-// import {setupPlayer} from './services/TrackPlayerService'; // Adjust path
+import store from './Redux/Cart/Store/store';
 
+// Navigation
+import MainTab from './Navigator/MainTab';
 
-// import StartNotify from './StartNotify';
+// Constants
+import strings from './constants/lang'; // Assuming this is your localization utility
+const introAudio = require('./assets/audio/intro.mp3');
 
-// import { getFcmToken } from './Screen/Chat/notification/services';
-// import {
-//   notificationListeners,
-//   requestUserPermission,
-// } from './Screen/Chat/notification/notificationServices';
+// AsyncStorage Key
+const HAS_PLAYED_INTRO_AUDIO_KEY = 'HAS_PLAYED_INTRO_AUDIO';
 
-// import notifee from '@notifee/react-native';
+/**
+ * Configures TrackPlayer capabilities for background playback control.
+ */
+const setupTrackPlayer = async () => {
+  try {
+    await TrackPlayer.setupPlayer({
+      capabilities: [
+        Capability.Play,
+        Capability.Pause,
+        Capability.Stop,
+        Capability.SkipToNext,
+        Capability.SkipToPrevious,
+        Capability.SeekTo,
+      ],
+      compactCapabilities: [
+        Capability.Play,
+        Capability.Pause,
+        Capability.SkipToNext,
+      ],
+    });
+  } catch (error) {
+    console.error('Failed to setup TrackPlayer:', error);
+    Alert.alert('오디오 설정 오류', '오디오 플레이어 초기화에 실패했습니다.');
+  }
+};
 
 const App: React.FC = () => {
-  // const {changeLanguage} = useContext(LanguageContext);
-  const [initialUrl, setInitialUrl] = useState<string | null>(null);
+  const [isAppReady, setIsAppReady] = useState(false);
+  const [isPlayingIntro, setIsPlayingIntro] = useState(false);
+  // initialUrl is not used in MainTab, consider removing if deep linking is handled differently
+  const [initialUrl, setInitialUrl] = useState<string | null>(null); 
+
   const linking = {
     prefixes: ['myapp://'],
     config: {
       screens: {
-        UserMain: 'UserMain', // URL과 매칭
+        UserMain: 'UserMain',
         Home: 'Home',
         ShoppingCart: 'ShoppingCart',
         ShippingNavigator: 'ShippingNavigator',
@@ -60,124 +84,146 @@ const App: React.FC = () => {
     },
   };
 
+  /**
+   * Sets the application language to Korean.
+   */
+  const setAppLanguage = useCallback(async () => {
+    try {
+      await AsyncStorage.setItem('language', 'kr');
+      strings.setLanguage('kr'); // Assuming 'strings' is a global or context-based utility
+    } catch (e) {
+      console.error('Failed to set language:', e);
+    }
+  }, []);
+
+  /**
+   * Plays the intro audio if it hasn't been played before.
+   * Sets listeners for playback completion and errors.
+   * @returns {Promise<void>}
+   */
+  const playIntroAudio = useCallback(async () => {
+    try {
+      const hasPlayed = await AsyncStorage.getItem(HAS_PLAYED_INTRO_AUDIO_KEY);
+
+      if (hasPlayed === 'true') {
+        console.log('Intro audio already played. Skipping...');
+        return false; // Indicate that intro was skipped
+      }
+
+      console.log('Playing intro audio...');
+      setIsPlayingIntro(true);
+
+      // Reset any previous state and add the intro track
+      await TrackPlayer.reset();
+      await TrackPlayer.add({
+        id: 'intro_audio',
+        url: introAudio,
+        title: '소개 오디오',
+        artist: '앱 소개',
+      });
+
+      await TrackPlayer.play();
+
+      return new Promise<boolean>((resolve, reject) => {
+        const playbackQueueEndedListener = TrackPlayer.addEventListener(
+          Event.PlaybackQueueEnded,
+          async ({ track }) => {
+            console.log('TrackPlayer: Playback queue ended for track:', track);
+            await AsyncStorage.setItem(HAS_PLAYED_INTRO_AUDIO_KEY, 'true');
+            setIsPlayingIntro(false);
+            playbackQueueEndedListener.remove(); // Clean up listener
+            playbackErrorListener.remove(); // Clean up error listener as well
+            await TrackPlayer.reset(); // Clear queue after successful playback
+            resolve(true); // Indicate successful playback
+          },
+        );
+
+        const playbackErrorListener = TrackPlayer.addEventListener(Event.PlaybackError, (error) => {
+          console.error('TrackPlayer: Playback error', error);
+          Alert.alert('오디오 재생 실패', '소개 오디오 재생 중 오류가 발생했습니다.');
+          setIsPlayingIntro(false);
+          playbackQueueEndedListener.remove(); // Clean up listener
+          playbackErrorListener.remove(); // Clean up error listener
+          TrackPlayer.reset(); // Reset on error
+          reject(new Error('Intro audio playback failed.')); // Indicate failure
+        });
+      });
+    } catch (e: any) {
+      console.error('Error during intro audio playback:', e);
+      Alert.alert('오디오 재생 오류', `소개 오디오 재생 중 문제가 발생했습니다: ${e.message || '알 수 없는 오류'}`);
+      setIsPlayingIntro(false);
+      await TrackPlayer.reset();
+      return false; // Indicate failure
+    }
+  }, []);
+
+  /**
+   * Initializes the app: sets language, sets up TrackPlayer, and handles intro audio.
+   */
   useEffect(() => {
-    console.log('App.tsx:');
-
-    // (async () => {
-    //   await notifee.setBadgeCount(0); // 앱 실행 시 뱃지 초기화
-    // })();
-
+    // Suppress specific LogBox warnings
     LogBox.ignoreLogs([
       'Non-serializable values were found in the navigation state',
     ]);
 
+    // Conditional logging for development vs. production
     if (!__DEV__) {
-      console.log('This is in production mode and ignore console.log');
+      console.log('This is in production mode. Disabling console.log.');
       console.log = () => {};
     } else {
-      console.log('This is in debug mode and activate console.log');
+      console.log('This is in debug mode. Console.log is active.');
+      AsyncStorage.setItem(HAS_PLAYED_INTRO_AUDIO_KEY, 'false');
     }
 
-    // if (Platform.OS === 'android') {
-    //   notificationPermission();
-    //   requestUserPermission();
-    //   // notificationListeners();
-    // }
+    const initializeApp = async () => {
+      console.log('Initializing app...');
+      await setAppLanguage(); // Set app language first
 
-    // if(Platform.OS === 'ios'){
-    //   console.log('ios user permission');
-    //   requestIosUserPermission();
-    //   // notificationListeners();
-    // }
+      await setupTrackPlayer(); // Setup TrackPlayer capabilities
 
-    // notificationListeners();
-
-    // fetchInitialUrl();
-
-    setLanguage();
-
-    const setupPlayer = async () => {
-            await TrackPlayer.setupPlayer();
+      // Attempt to play intro audio. Wait for it to complete if it plays.
+      try {
+        const playedIntro = await playIntroAudio();
+        if (playedIntro) {
+          console.log('Intro audio played successfully.');
+        } else {
+          console.log('Intro audio skipped or already played.');
+        }
+      } catch (error) {
+        console.warn('Intro audio handling completed with errors, but app proceeds.');
+      } finally {
+        setIsAppReady(true); // Mark app as ready regardless of audio outcome
+      }
     };
 
-    setupPlayer();
+    initializeApp();
 
-    return () => {};
-  }, []);
+    // Cleanup function: This runs when the component unmounts
+    return () => {
+      console.log('App component unmounting. Resetting TrackPlayer.');
+      TrackPlayer.reset(); // Ensure TrackPlayer resources are released
+    };
+  }, [setAppLanguage, playIntroAudio]); // Dependencies to ensure useEffect re-runs if these change (though they are useCallback-ed)
 
+  // Show loading indicator until the app is ready
+  if (!isAppReady) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color="#0000ff" />
+        <Text style={styles.loadingText}>
+          {isPlayingIntro ? '소개 오디오 재생 중...' : '앱 초기화 중...'}
+        </Text>
+      </View>
+    );
+  }
 
-  // const requestIosUserPermission = async () => {
-  //   try {
-  //     const authStatus = await messaging().requestPermission();
-  //     console.log('IOS Authorization status: ', authStatus);
-  //     const enabled =
-  //       authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
-  //       authStatus === messaging.AuthorizationStatus.PROVISIONAL;
-
-  //       console.log('IOS Authorization enabled: ', enabled);
-  //     if (enabled) {
-  //       getFcmToken();
-  //     }
-  //   } catch (error) {
-  //     console.error('request Ios user permisson 에러', error);
-  //   }
-
-  // };
-
-  // const fetchInitialUrl = async () => {
-  //   const url = await Linking.getInitialURL();
-  //   console.log('App.tsx : Initial URL:', url);
-  //   if (url) {
-  //     // console.log('App.tsx : Initial URL:', url);
-  //     setInitialUrl(url); // URL 설정
-  //   }
-  // };
-
-  // async function notificationPermission() {
-  //   console.log('Platform.version = ', Platform.Version);
-
-  //   const hasPermission = await PermissionsAndroid.check(
-  //     PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
-  //   );
-  //   console.log('App.tsx - 알림 권한 상태:', hasPermission);
-
-  //   if (Platform.OS === 'android' && Platform.Version >= 33) {
-  //     console.log('App.tsx: android permission OK ');
-  //     const granted = await PermissionsAndroid.request(
-  //       PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
-  //       {
-  //         title: 'Notification Permission',
-  //         message:
-  //           'This app needs notification permissions to send you alerts.',
-  //         buttonPositive: 'Allow',
-  //       },
-  //     );
-
-  //     if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-  //       console.log(' App.tsx - Notification permission granted.');
-  //     } else {
-  //       console.log('App.tsx - Notification permission denied.');
-  //     }
-  //   } else {
-  //     console.log(
-  //       'App.tsx - Notification permission is not required for this Android version.',
-  //     );
-  //   }
-  // }
-
-  const setLanguage = async () => {
-    await AsyncStorage.setItem('language', 'kr');
-    strings.setLanguage('kr');
-  };
-
-
+  // Once the app is ready, render the main application components
   return (
     <AuthProvider>
       <LanguageProvider>
         <Provider store={store}>
           <SleepTimerProvider>
             <NavigationContainer linking={linking}>
-              {/* <StartNotify /> */}
               <MainTab initialUrl={initialUrl} />
             </NavigationContainer>
           </SleepTimerProvider>
@@ -186,5 +232,19 @@ const App: React.FC = () => {
     </AuthProvider>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  loadingText: {
+    marginTop: 20,
+    fontSize: 16,
+    color: '#333',
+  },
+});
 
 export default App;
