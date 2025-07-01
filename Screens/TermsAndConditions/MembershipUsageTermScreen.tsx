@@ -16,6 +16,7 @@ import {baseURL} from '../../assets/common/BaseUrl';
 import {
   OZS_USAGE_TERM_EN_ID,
   OZS_USAGE_TERM_ID,
+  USAGE_TERM_ID,
   width,
 } from '../../assets/common/BaseValue';
 import {errorAlert} from '../../utils/alerts/errorAlert';
@@ -109,24 +110,16 @@ async function getUsageTermsFromS3(
 
   try {
     if (language === 'kr') {
-      response = await axios.get(`${baseURL}terms/${OZS_USAGE_TERM_ID}`);
+      response = await axios.get(`${baseURL}terms/${USAGE_TERM_ID}`);
     } else {
       response = await axios.get(`${baseURL}terms/${OZS_USAGE_TERM_EN_ID}`);
     }
 
     if (response.status === 200) {
-      const location = response.data[0]?.usageLocation.split('/').pop();
-      if (!location) {
-        throw new Error('Invalid usage location');
-      }
 
-      const res = await axios.get(`${baseURL}terms/downloadtext/${location}`);
-      if (res.status === 200) {
-        console.log('이용약관을  서버에서 성공적으로 가져옴');
-        setContents(res.data);
-      } else {
-        setContents('UsageTerms.tsx: 데이터를 가져오지 못했습니다.');
-      }
+      console.log('이용약관을  서버에서 성공 response.data = ', response.data);
+      setContents(response.data);
+      
     } else {
       setContents('데이터 없음');
     }

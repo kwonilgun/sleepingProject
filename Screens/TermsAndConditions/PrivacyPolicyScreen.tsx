@@ -8,6 +8,7 @@ import {
   StyleSheet,
   View,
   Text,
+  SafeAreaView,
 } from 'react-native';
 import WrapperContainer from '../../utils/basicForm/WrapperContainer';
 import HeaderComponent from '../../utils/basicForm/HeaderComponents';
@@ -21,14 +22,16 @@ import {baseURL} from '../../assets/common/BaseUrl';
 import {
   OZS_PRIVACY_AGREEMENT_EN_ID,
   OZS_PRIVACY_AGREEMENT_ID,
+  PERSONAL_INFO_ID,
   USAGE_TERM_ID,
   width,
 } from '../../assets/common/BaseValue';
 import {errorAlert} from '../../utils/alerts/errorAlert';
-import RenderHtml from 'react-native-render-html';
+import RenderHtml, { RenderHTML } from 'react-native-render-html';
 import LoadingWheel from '../../utils/loading/LoadingWheel';
 import {useLanguage} from '../../context/store/LanguageContext';
 import {RFPercentage} from 'react-native-responsive-fontsize';
+import { tagsStyles } from './UsageTermScreen';
 
 const PrivacyPolicyScreen: React.FC<PrivacyPolicyScreenProps> = props => {
   const [contents, setContents] = useState<string | undefined>(undefined);
@@ -86,17 +89,23 @@ const PrivacyPolicyScreen: React.FC<PrivacyPolicyScreenProps> = props => {
         isRight={false}
       />
 
-      {ready ? (
-        <View style={{flex: 1}}>
-          <ScrollView
-            style={styles.scrollView}
-            contentContainerStyle={{flexGrow: 1}}>
-            <RenderHtml contentWidth={width} source={{html: contents ?? ''}} />
-          </ScrollView>
-        </View>
-      ) : (
-        LoadingWheel()
-      )}
+     {ready ? (
+             <SafeAreaView style={styles.container}>
+           <ScrollView contentContainerStyle={styles.scrollViewContent}>
+             <RenderHTML
+               contentWidth={width}
+               // source={{ html: htmlContent || ''}}
+               source={{ html: contents || ''}}
+               // baseStyle={baseStyle}
+               tagsStyles={tagsStyles}
+               // classesStyles={classesStyles}
+               // Potentially add renderers for more complex elements if needed
+             />
+           </ScrollView>
+         </SafeAreaView>
+           ) : (
+             LoadingWheel()
+           )}
     </WrapperContainer>
   );
 };
@@ -110,7 +119,7 @@ async function getPrivatePolicyFromS3(
 
   try {
     if (language === 'kr') {
-      response = await axios.get(`${baseURL}terms/${OZS_PRIVACY_AGREEMENT_ID}`);
+      response = await axios.get(`${baseURL}terms/${PERSONAL_INFO_ID}`);
     } else {
       response = await axios.get(
         `${baseURL}terms/${OZS_PRIVACY_AGREEMENT_EN_ID}`,
@@ -118,18 +127,9 @@ async function getPrivatePolicyFromS3(
     }
 
     if (response.status === 200) {
-      const location = response.data[0]?.usageLocation.split('/').pop();
-      if (!location) {
-        throw new Error('Invalid usage location');
-      }
+      console.log('개인정보  서버에서 성공 response.data = ', response.data);
+      setContents(response.data);
 
-      const res = await axios.get(`${baseURL}terms/downloadtext/${location}`);
-      if (res.status === 200) {
-        console.log('개인정보 동의서를  서버에서 성공적으로 가져옴');
-        setContents(res.data);
-      } else {
-        setContents('UsageTerms.tsx: 데이터를 가져오지 못했습니다.');
-      }
     } else {
       setContents('데이터 없음');
     }
@@ -143,11 +143,13 @@ async function getPrivatePolicyFromS3(
 }
 
 const styles = StyleSheet.create({
-  scrollView: {
-    backgroundColor: 'white',
-    color: '#FFFFFF' /* 텍스트 색상 */,
-    margin: RFPercentage(1),
-    // marginHorizontal: 20,
+  container: {
+    flex: 1,
+    backgroundColor: '#f9f9f9',
+  },
+  scrollViewContent: {
+    paddingHorizontal: 10, // Adjust as needed to control overall horizontal padding
+    paddingVertical: 20,
   },
 });
 

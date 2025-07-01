@@ -329,7 +329,7 @@ const SystemInfoScreen: React.FC<SystemInfoScreenProps> = props => {
         rightText={''}
         rightTextStyle={{color: colors.lightBlue}}
         onPressRight={() => {}}
-        isRightView={true}
+        isRightView={false   }
         rightCustomView={RightCustomComponent}
       />
 

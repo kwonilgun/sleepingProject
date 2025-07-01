@@ -185,7 +185,7 @@ const FavoriteScreen: React.FC<FavoriteScreenProps> = ({ navigation, route }) =>
           <Text style={styles.trackName} numberOfLines={1}>
             {item.name.replace(/\.mp3$/i, '')}
           </Text>
-          {item.artist && <Text style={styles.trackArtist}>{item.artist}</Text>}
+          {/* {item.artist && <Text style={styles.trackArtist}>{item.artist}</Text>} */}
         </TouchableOpacity>
         <TouchableOpacity onPress={() => removeFavorite(item.id)} style={styles.removeButton}>
           <FontAwesome name="trash" size={RFPercentage(2.5)} color={colors.blue} />
@@ -224,6 +224,7 @@ const FavoriteScreen: React.FC<FavoriteScreenProps> = ({ navigation, route }) =>
         rightPressActive={false}
         isCenterView={false}
         centerText="⭐ 즐겨찾기"
+        isRight={false}
         isRightView={false}
       />
       <View style={styles.container}>
@@ -232,25 +233,28 @@ const FavoriteScreen: React.FC<FavoriteScreenProps> = ({ navigation, route }) =>
         ) : favoriteTracks?.length === 0 ? (
           <Text style={styles.emptyListText}>즐겨찾는 곡이 없습니다.</Text>
         ) : (
-          <FlatList
-            data={favoriteTracks}
-            keyExtractor={item => item.id}
-            renderItem={renderFavoriteItem}
-            contentContainerStyle={styles.flatListContent}
-          />
+          <>
+              <FlatList
+                data={favoriteTracks}
+                keyExtractor={item => item.id}
+                renderItem={renderFavoriteItem}
+                contentContainerStyle={styles.flatListContent}
+              />
+              {/* 모든 즐겨찾기 재생 버튼 */}
+              {!isLoading && favoriteTracks && favoriteTracks.length > 0 && (
+                <TouchableOpacity
+                  style={styles.playAllButton}
+                  onPress={handlePlayAllFavorites}
+                >
+                  <FontAwesome name="play" size={RFPercentage(3)} color={colors.white} style={styles.playIcon} />
+                  <Text style={styles.playAllButtonText}>모든 즐겨찾기 재생</Text>
+                </TouchableOpacity>
+              )}
+          </>
+
         )}
       </View>
 
-      {/* 모든 즐겨찾기 재생 버튼 */}
-      {!isLoading && favoriteTracks && favoriteTracks.length > 0 && (
-        <TouchableOpacity
-          style={styles.playAllButton}
-          onPress={handlePlayAllFavorites}
-        >
-          <FontAwesome name="play" size={RFPercentage(3)} color={colors.white} style={styles.playIcon} />
-          <Text style={styles.playAllButtonText}>모든 즐겨찾기 재생</Text>
-        </TouchableOpacity>
-      )}
     </WrapperContainer>
   );
 };

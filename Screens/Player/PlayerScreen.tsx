@@ -62,7 +62,7 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ route, navigation }) => {
 
   // 상태 관리
   const [currentTrackIndex, setCurrentTrackIndex] = useState<number>(0);
-  const [displayTitle, setDisplayTitle] = useState('선택된 곡 없음');
+  const [displayTitle, setDisplayTitle] = useState<string | null>(null);
   const [sleepTimerActive, setSleepTimerActive] = useState<boolean>(false);
   // const [afterSleepTimer, setAfterSleepTimer] = useState<number>(initialSleepDelay || 0.1);
 
@@ -222,7 +222,6 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ route, navigation }) => {
     Alert,
   });
 
-  
 
   // 수면 모드 시간 기록 함수
   const sendSleepModeTime = async (endpoint: string, time: string) => {
@@ -344,7 +343,7 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ route, navigation }) => {
       <View style={styles.container}>
         <Text style={styles.title}>🎧 제목:</Text>
         <Text style={styles.nowPlaying} numberOfLines={1} ellipsizeMode="tail">
-          {displayTitle}
+          {displayTitle ? displayTitle : '선택된 곡 없음'}
           {isLoading && ' (로딩 중...)'}
         </Text>
 
@@ -380,13 +379,18 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ route, navigation }) => {
           onPress={startSleepTimer}
           style={[
             styles.sleepModeButton,
-            sleepTimerActive ? styles.sleepModeButtonActive : styles.sleepModeButtonInactive,
+            displayTitle ? (sleepTimerActive ? styles.sleepModeButtonActive : styles.sleepModeButtonInactive) : null,
           ]}
         >
-          <MaterialIcon name="sleep" size={RFPercentage(3)} color="white" />
-          <Text style={styles.sleepModeButtonText}>
-            {sleepTimerActive ? '수면모드 활성화됨 (취소)' : '수면모드'}
-          </Text>
+
+          {displayTitle ? (
+            <>
+            <MaterialIcon name="sleep" size={RFPercentage(3)} color="white" />
+            <Text style={styles.sleepModeButtonText}>
+                        {sleepTimerActive ? '수면모드 활성화됨 (취소)' : '수면모드'}
+            </Text>
+            </>
+          ) : null}
         </TouchableOpacity>
       </View>
     </WrapperContainer>
