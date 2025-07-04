@@ -31,6 +31,7 @@ import {
 } from 'react-native-track-player';
 import AsyncStorage from '@react-native-async-storage/async-storage'; // Import AsyncStorage for persistence
 import { useFocusEffect } from '@react-navigation/native';
+import { width } from '../../styles/responsiveSize';
 
 
 
@@ -649,21 +650,33 @@ const PlaylistScreen: React.FC<PlaylistScreenProps> = ({ navigation }) => {
           />
 
           <View style={styles.selectionButtonsContainer}>
-            <Button
-              title="모두 선택"
+            {/* 모두 선택 Button */}
+            <TouchableOpacity
               onPress={selectAllTracks}
-              color="#007bff"
-              disabled={
-                areAllSelected || flatDisplayList.filter(item => item.type === 'file').length === 0
-              }
-            />
-            <View style={{ width: 10 }} />
-            <Button
-              title="모두 해제"
+              style={[
+                styles.button,
+                { backgroundColor: '#007bff' }, // Enabled color
+                (areAllSelected || flatDisplayList.filter(item => item.type === 'file').length === 0) && styles.disabledButton, // Disabled styles
+              ]}
+              disabled={areAllSelected || flatDisplayList.filter(item => item.type === 'file').length === 0}
+            >
+              <Text style={styles.buttonText}>모두 선택</Text>
+            </TouchableOpacity>
+
+            <View style={{ width: width * 0.3 }} />
+
+            {/* 모두 해제 Button */}
+            <TouchableOpacity
               onPress={deselectAllTracks}
-              color="#dc3545"
+              style={[
+                styles.button,
+                { backgroundColor: '#dc3545' }, // Enabled color
+                selectedTrackUris.length === 0 && styles.disabledButton, // Disabled styles
+              ]}
               disabled={selectedTrackUris.length === 0}
-            />
+            >
+              <Text style={styles.buttonText}>모두 해제</Text>
+            </TouchableOpacity>
           </View>
           <FlatList
             data={flatDisplayList}
@@ -819,8 +832,26 @@ const styles = StyleSheet.create({
   },
   selectionButtonsContainer: {
     flexDirection: 'row',
+    alignContent: 'space-between',
+    // Add other styles for your container if needed
+  },
+  button: {
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 5,
+    alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 15,
+  },
+  buttonText: {
+    color: '#fff', // White text for enabled state
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  disabledButton: {
+    backgroundColor: '#6c757d', // Darker gray for disabled background
+    // You might also want to change the text color for disabled state
+    // For example:
+    // opacity: 0.7,
   },
 });
 

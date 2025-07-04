@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/rules-of-hooks */
 /*
  * File: App.tsx
  * Project: root_project
@@ -18,7 +19,9 @@ import {
   StyleSheet,
   Text,
   View,
-  TouchableOpacity, // Import TouchableOpacity for the stop button
+  TouchableOpacity,
+  PermissionsAndroid,
+  Platform, // Import TouchableOpacity for the stop button
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import TrackPlayer, { Event, State, Capability } from 'react-native-track-player';
@@ -36,8 +39,20 @@ import MainTab from './Navigator/MainTab';
 import strings from './constants/lang'; // Assuming this is your localization utility
 const introAudio = require('./assets/audio/intro.mp3');
 
+import {
+  check,
+  request,
+  RESULTS,
+  PERMISSIONS,
+} from 'react-native-permissions';
+// import { useVoiceRecognition } from './Screens/Player/hooks/useVoiceRecognition';
+import Voice from "@react-native-voice/voice";
+
+
 // AsyncStorage Key
 const HAS_PLAYED_INTRO_AUDIO_KEY = 'HAS_PLAYED_INTRO_AUDIO';
+const HAS_GRANTED_MICROPHONE_PERMISSION_KEY = 'HAS_GRANTED_MICROPHONE_PERMISSION'; // New key for permission
+
 
 /**
  * Configures TrackPlayer capabilities for background playback control.
@@ -69,25 +84,66 @@ const App: React.FC = () => {
   const [isAppReady, setIsAppReady] = useState(false);
   const [isPlayingIntro, setIsPlayingIntro] = useState(false);
   const [showStopButton, setShowStopButton] = useState(false); // New state for stop button visibility
-  // initialUrl is not used in MainTab, consider removing if deep linking is handled differently
-  const [initialUrl, setInitialUrl] = useState<string | null>(null);
+ const [hasMicrophonePermission, setHasMicrophonePermission] = useState<boolean | null>(null); // State for microphone permission
 
+ 
   // Ref to store the promise's resolve function for external control
-  const introAudioPromiseResolve = useRef<((value: boolean) => void) | null>(null);
+ const introAudioPromiseResolve = useRef<((value: boolean) => void) | null>(null);
 
-  const linking = {
-    prefixes: ['myapp://'],
-    config: {
-      screens: {
-        UserMain: 'UserMain',
-        Home: 'Home',
-        ShoppingCart: 'ShoppingCart',
-        ShippingNavigator: 'ShippingNavigator',
-        PaymentNavigator: 'PaymentNavigator',
-        Admin: 'Admin',
-      },
-    },
-  };
+//  const recognizedTextRef = useRef('');
+//  const voiceResponseHandledRef = useRef(false);
+
+
+//  const handleVoiceInteraction = async (continueMusic: boolean) => {
+//   console.log('App.tsx handelVoiceInteraction continueMusic', continueMusic);
+//  };
+
+  const requestMicrophonePermission = useCallback(async (): Promise<boolean> => {
+  // Check if permission was previously granted and persisted
+
+        const persistedPermission = await AsyncStorage.getItem(HAS_GRANTED_MICROPHONE_PERMISSION_KEY);
+
+        if (persistedPermission === 'true') {
+            console.log('Microphone permission already granted and persisted.');
+            setHasMicrophonePermission(true);
+            return true;
+        }
+
+        try {
+          if (Platform.OS === 'ios') {
+            console.log('IOS request PERMISSIONS.IOS.MICROPHONE');
+            const result = await request(PERMISSIONS.IOS.MICROPHONE);
+            console.log('MicrophonePermisson result = ', result === RESULTS.GRANTED);
+            if(result === RESULTS.GRANTED){
+              await AsyncStorage.setItem(HAS_GRANTED_MICROPHONE_PERMISSION_KEY, 'true');
+              setHasMicrophonePermission(true);
+              return true;
+            }
+            else{
+              console.log('Microphone 허용되지 않음.');
+              Alert.alert('에러', '마이크 허용 안됨');
+              return false;
+            }
+          } else if (Platform.OS === 'android') {
+            const result = await PermissionsAndroid.request(
+              PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+              {
+                title: '마이크 권한 요청',
+                message: '음성 인식 기능을 위해 마이크 접근 권한이 필요합니다.',
+                buttonNeutral: '나중에',
+                buttonNegative: '거부',
+                buttonPositive: '허용',
+              },
+            );
+            return result === PermissionsAndroid.RESULTS.GRANTED;
+          } else {
+            return false;
+          }
+        } catch (error) {
+          console.error('마이크 권한 요청 중 오류 발생:', error);
+          return false;
+        }
+    }, []);
 
   /**
    * Sets the application language to Korean.
@@ -206,11 +262,33 @@ const App: React.FC = () => {
       console.log('This is in debug mode. Console.log is active.');
       // 2025-06-27 15:50:42, Intro audio를 테스트하기 위해서 추가
       AsyncStorage.setItem(HAS_PLAYED_INTRO_AUDIO_KEY, 'false');
+      AsyncStorage.setItem(HAS_GRANTED_MICROPHONE_PERMISSION_KEY, 'false'); // Reset permission for testing
     }
 
     const initializeApp = async () => {
       console.log('Initializing app...');
       await setAppLanguage(); // Set app language first
+
+      const granted = await requestMicrophonePermission();
+      if (!granted) {
+          console.warn('Microphone permission not granted. Some features may not work.');
+          // You might want to halt app initialization or show a persistent warning here
+          // For now, we proceed but log the warning.
+      }
+      else{
+         console.log('마이크 허용 됨!!!!!!');
+        //  useVoiceRecognition(
+        //   recognizedTextRef,
+        //   voiceResponseHandledRef,
+        //   handleVoiceInteraction,
+        //   Voice,
+        //  );
+        //  await Voice.start('ko-KR');
+        //  Voice.stop().then(() =>{
+        //   console.log('Voice stop .....');
+        //  });
+      }
+
 
       await setupTrackPlayer(); // Setup TrackPlayer capabilities
 
@@ -262,8 +340,8 @@ const App: React.FC = () => {
       <LanguageProvider>
         <Provider store={store}>
           <SleepTimerProvider>
-            <NavigationContainer linking={linking}>
-              <MainTab initialUrl={initialUrl} />
+            <NavigationContainer >
+              <MainTab initialUrl='hello' />
             </NavigationContainer>
           </SleepTimerProvider>
         </Provider>

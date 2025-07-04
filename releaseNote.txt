@@ -1,0 +1,64 @@
+2025-05-31 06:52:11   
+     npx react-native run-ios --simulator="iPhone 16 Pro"
+     npx react-native run-android
+
+2025-06-12 10:48:56, version 1.0.4
+     . 백 그라운드 모드 지원
+     . repeat icon 수정
+     . 
+
+2025-06-13 10:37:32, version 1.0.7
+     . react native track play ios 적용
+     . mute 추가
+     . 제목 변경 안되는 문제 해결
+     . control icon 수정
+
+2025-06-16 11:36:23, version 1.1.0
+     . 체크박스 사이즈 확대
+     . 수면 모드 추가
+
+2025-06-17 09:50:28: 파일 분활 구조
+     src/screens/PlayerScreen.tsx: 메인 화면 컴포넌트 (UI 레이아웃 및 핵심 로직 조합)
+     src/hooks/useTrackPlayerSetup.ts: TrackPlayer 초기 설정 및 이벤트 리스너 관리 훅
+     src/hooks/useSleepTimer.ts: 수면 타이머 로직 (TTS 및 음성 인식 포함) 훅
+     src/components/PlaybackControls.tsx: 재생/일시정지, 이전/다음 곡, 반복 모드 버튼 UI 컴포넌트
+     src/components/TrackProgressSlider.tsx: 진행 바 슬라이더 및 시간 표시 UI 컴포넌트
+     src/components/VolumeControl.tsx: 볼륨 조절 슬라이더 및 음소거 버튼 UI 컴포넌트
+     src/utils/playerUtils.ts: 시간 포맷팅 등 유틸리티 함수
+
+2025-06-19 15:38:11, version 1.1.1
+     .player, playlist 화면 분리
+     .player 플레이리스트 없는 경우 처리
+
+2025-06-19 15:39:09, version 1.1.2
+     .favorite screen 추가
+
+2025-06-23 13:24:40, version 1.1.3
+     .PlayerScreen의 재 구조화
+     .시간 설정 에러 수정
+     .수면 모드 설정 취소 
+
+2025-06-25 15:11:22, version 1.1.5
+     .'세종' 검색 안되는 문제 해결
+     .체크 마크로 변경
+     .수면 시간 추가
+     .수면 체크 시간 profile로 이동
+
+2025-06-26 14:47:10, version 1.1.6
+     .수면모드 시작 시에 repeat 모드 설정
+     .로그 아웃 시에 system clash 문제 fix
+     .수면 모드 오동작 fix   
+
+2025-06-27 14:48:35, version 1.1.7
+     .곡 선택 체크 마크 유지
+     .소개 음성 지원
+
+2025-06-27 22:46:47, version 1.1.8
+     .수면 체크 시간 주기 오동작 수정
+     .소개 음성 중단 기능 추가
+
+2025-07-01 13:40:40, version 1.1.9
+     .이용약관, 개인정보 구현
+     .수면기록, 월별 기록, 입면시간 구현
+     .선택된 곡이 없는 경우 '수면모드' 버튼 disable
+     .'모든 즐겨찾기 재생' 배경색 수정
