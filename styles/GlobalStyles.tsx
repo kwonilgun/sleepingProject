@@ -12,12 +12,12 @@ const GlobalStyles = StyleSheet.create({
     flex: 1,
   },
   scrollView: {
-    backgroundColor: 'gainsboro',
+    backgroundColor: colors.lightGrey,
   },
   VStack: {
     flex: 1,
     flexDirection: 'column',
-    marginHorizontal: RFPercentage(3),
+    margin: RFPercentage(3),
     justifyContent: 'flex-start',
   },
   HStack: {

@@ -338,17 +338,17 @@ const SystemInfoScreen: React.FC<SystemInfoScreenProps> = props => {
         style={GlobalStyles.containerKey}>
         <ScrollView style={GlobalStyles.scrollView}>
           <View style={GlobalStyles.VStack}>
-            <View style={styles.HSStack}>
+            {/* <View style={styles.HSStack}> */}
               <View>
-                <Text style={styles.inputTitle}>
+                <Text style={styles.folderItemContainer}>
                   {strings.VERSION}: {versionNum}
                 </Text>
-              </View>
+              {/* </View> */}
             </View>
 
             <View >
                     <Text
-                      style={styles.HeadTitleText}
+                      style={styles.folderItemContainer}
                       onPress={ () => {
                         console.log('사용자 정보 click');
                         fetchUserProfile();
@@ -423,7 +423,7 @@ const SystemInfoScreen: React.FC<SystemInfoScreenProps> = props => {
                   )}
 
             <Text
-              style={styles.HeadTitleText}
+              style={styles.folderItemContainer}
               onPress={() => {
                 console.log('회원 탈퇴 클릭');
                 //  handleExitMember(props);
@@ -432,7 +432,7 @@ const SystemInfoScreen: React.FC<SystemInfoScreenProps> = props => {
             </Text>
 
             <Text
-              style={styles.HeadTitleText}
+              style={styles.folderItemContainer}
               onPress={() => {
                 console.log('SystemInfoScreen: 로그 아웃 클릭');
                 handleLogout(props);
@@ -440,7 +440,7 @@ const SystemInfoScreen: React.FC<SystemInfoScreenProps> = props => {
               {strings.LOGOUT}{'  ▶️ ' } {/* 인디케이터 추가 */}
             </Text>
             <Text
-              style={styles.HeadTitleText}
+              style={styles.folderItemContainer}
               onPress={() => {
                 console.log('Profile: 이용약관');
                 handleUsageTerm(props);
@@ -449,7 +449,7 @@ const SystemInfoScreen: React.FC<SystemInfoScreenProps> = props => {
                   {strings.TERMS_OF_SERVICE}{'  ▶️ ' } {/* 인디케이터 추가 */}
             </Text>
             <Text
-              style={styles.HeadTitleText}
+              style={styles.folderItemContainer}
               onPress={() => {
                 console.log('Profile: 개인정보처리');
                 handlePrivacyPolicy(props);
@@ -486,6 +486,24 @@ const styles = StyleSheet.create({
     marginTop: RFPercentage(2),
     borderColor: 'blue',
     borderBottomWidth: 1,
+  },
+
+  folderItemContainer: {
+    flexDirection: 'row',
+    fontWeight: 'bold',
+    fontSize: RFPercentage(2.5),
+    alignItems: 'center',
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd',
+    borderRadius: 8,
+    marginBottom: 8,
+    paddingRight: 10,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
   },
 
   userContainer:{
@@ -575,7 +593,7 @@ const styles = StyleSheet.create({
   inputTitle: {
     color: 'black',
     fontWeight: 'bold',
-    fontSize: RFPercentage(2.2),
+    fontSize: RFPercentage(2.5),
   },
 
   buttonText: {

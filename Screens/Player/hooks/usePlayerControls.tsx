@@ -37,12 +37,15 @@ export const usePlayerControls = ({
   };
 
   const handleSkipPrevious = async () => {
+
     const currentPosition = progress.position; // Access progress from the hook
-    if (currentPosition > 3 || currentTrackIndex === 0) {
-      await TrackPlayer.seekTo(0);
-    } else if (currentTrackIndex > 0) {
+    console.log('handleSkipPrevious : currentPosition, currentTrackIndex', currentPosition, currentTrackIndex);
+    // if (currentPosition > 3 || currentTrackIndex === 0) {
+    // if (currentPosition  <  10 ) {
+    //   await TrackPlayer.seekTo(0);
+    // } else  {
       await TrackPlayer.skipToPrevious();
-    }
+    // }
   };
 
   const handleSkipNext = async () => {

@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
   centerTextStyle: {
     color: 'black',
     fontFamily: fontFamily.bold,
-    fontSize: RFPercentage(3),
+    fontSize: RFPercentage(3.5),
     fontWeight: 'bold',
   },
   rightTextStyle: {

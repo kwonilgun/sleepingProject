@@ -150,6 +150,15 @@ export const useTrackPlayerSetup = ({
         return null;
       }).filter(Boolean);
 
+       // Sort tracksToAdd alphanumerically by title
+      tracksToAdd.sort((a:any, b:any) => {
+        const titleA = a.title.toLowerCase();
+        const titleB = b.title.toLowerCase();
+
+        // Use localeCompare for robust alphanumeric sorting
+        return titleA.localeCompare(titleB, undefined, { numeric: true, sensitivity: 'base' });
+      });
+
       console.log('tracksToAdd :', tracksToAdd);
 
       try {

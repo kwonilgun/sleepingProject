@@ -4,6 +4,7 @@ import MaterialIcon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { RFPercentage } from 'react-native-responsive-fontsize';
 import { useSleepTimer } from '../../../context/store/SleepTimerContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { alertMsg } from '../../../utils/alerts/alertMsg';
 
 interface SleepTimerModalProps {
   isVisible: boolean;
@@ -15,37 +16,7 @@ const sleepTimerOptions = [0.1, 1, 5, 10, 15, 20, 30]; // Time options in minute
 const SLEEP_DELAY_KEY = 'sleepTimerInitialDelay'; // Key for AsyncStorage
 
 const SleepTimerModal: React.FC<SleepTimerModalProps> = ({ isVisible, onClose }) => {
-  const { initialSleepDelay, setInitialSleepDelay } = useSleepTimer(); // Context 훅 사용
-  // const [isLoading, setIsLoading] = useState<boolean>(true);
-
-  // // Effect to load the sleep delay from AsyncStorage when the component mounts
-    // useEffect(() => {
-    //   const loadSleepDelay = async () => {
-
-    //     try {
-    //       const storedValue = await AsyncStorage.getItem(SLEEP_DELAY_KEY);
-    //        console.log('SleepTimerModal, loadSleepDelay storeValue', storedValue);
-    //       if (storedValue !== null) {
-    //         // If a value is found, parse it and set it
-    //         const parsedValue = parseFloat(storedValue);
-    //         setInitialSleepDelay(parsedValue);
-    //       } else {
-    //         // If no value is found, set the default to 0.1
-
-    //         setInitialSleepDelay(0.1);
-    //         // Also save this default value to storage immediately
-    //         await AsyncStorage.setItem(SLEEP_DELAY_KEY, '0.1');
-    //       }
-    //     } catch (error) {
-    //       console.error('Failed to load sleep delay from storage:', error);
-    //       // Fallback to default if loading fails
-    //       setInitialSleepDelay(0.1);
-    //     } finally {
-    //       setIsLoading(false); // Loading is complete
-    //     }
-    //   };
-    //   loadSleepDelay();
-    // }, []); // Run only once on mount
+  const { sleepTimerActive, initialSleepDelay, setInitialSleepDelay } = useSleepTimer(); // Context 훅 사용
 
   // Save the selected value when closing the modal
   const handleClose = async () => {
@@ -76,7 +47,14 @@ const SleepTimerModal: React.FC<SleepTimerModalProps> = ({ isVisible, onClose })
                 initialSleepDelay === minutes && styles.sleepTimerOptionButtonActive,
               ]}
               onPress={() => {
-                setInitialSleepDelay(minutes); // Context의 값 업데이트
+                console.log('SleepTimerModal, sleepTimerActive = ', sleepTimerActive);
+                if(sleepTimerActive){
+                  alertMsg('알림', '현재 수면 모드 동작 중입니다. 수면 모드를 중단하고 세팅해주세요');
+                }
+                else{
+                  setInitialSleepDelay(minutes); // Context의 값 업데이트
+                }
+                
                 // onClose(); // 모달을 닫고 싶다면 주석 해제
               }}
             >

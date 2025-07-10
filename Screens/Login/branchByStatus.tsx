@@ -118,6 +118,6 @@ export const branchByStatus = async (
 
     console.log('branchByStatus/makeUserDataAndDispatch userData', userData);
 
-    dispatch({type: 'LOGIN', payload: userData});
+    dispatch({type: 'LOGIN', payload: {user:userData, loginMethod: 'email'}});
   }
 };

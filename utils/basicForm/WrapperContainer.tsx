@@ -22,7 +22,7 @@ interface WrapperContainerProps {
 
 // create a component
 const WrapperContainer: React.FC<WrapperContainerProps> = ({
-  statusBarColor = colors.white,
+  statusBarColor = colors.lightGrey,
   barStyle = 'dark-content',
   containerStyle = {},
   children,
@@ -39,10 +39,10 @@ const WrapperContainer: React.FC<WrapperContainerProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.white,
-    marginTop: RFPercentage(3),
-    paddingHorizontal: RFPercentage(2),
-    paddingTop: RFPercentage(1),
+    backgroundColor: colors.lightGrey,
+    // marginTop: RFPercentage(3),
+    // paddingHorizontal: RFPercentage(2),
+    // paddingTop: RFPercentage(1),
   },
 });
 

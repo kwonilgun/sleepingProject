@@ -106,7 +106,10 @@ const LoginScreen: React.FC<LoginScreenProps> = ({navigation}) => {
         console.log('LoginScreen, kakao log out');
         // Assuming you have a handleKakaoLogout function
         handleKakaoLogout();
-      } else{
+      } else if(state.loginMethod === 'email') {
+        console.log('LoginScreen email logout');
+      }
+      else{
         // 2025-06-27 10:26:31, 자동 로그인 구현....
         if(Platform.OS === 'ios'){
           console.log('Login.Screen: useEffect,  인증 안되었고, 상태는 초기 상태, 플랫폼은 apple ios ');

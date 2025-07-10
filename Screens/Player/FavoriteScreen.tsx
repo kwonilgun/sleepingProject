@@ -25,6 +25,7 @@ import { baseURL } from '../../assets/common/BaseUrl';
 import { getToken } from '../../utils/getSaveToken';
 import axios, { AxiosResponse } from 'axios';
 import { alertMsg } from '../../utils/alerts/alertMsg';
+import { height } from '../../styles/responsiveSize';
 
 interface PlaylistItem {
   id: string;
@@ -155,21 +156,29 @@ const FavoriteScreen: React.FC<FavoriteScreenProps> = ({ navigation, route }) =>
     }
   };
 
-  // 모든 즐겨찾기 곡을 재생하는 함수
+    // 모든 즐겨찾기 곡을 재생하는 함수
   const handlePlayAllFavorites = () => {
     if (!favoriteTracks || favoriteTracks.length === 0) {
       Alert.alert('재생할 곡 없음', '즐겨찾는 곡이 없습니다.');
       return;
     }
 
-    const allTrackUris = favoriteTracks.map(track => track.uri!).filter(Boolean) as string[];
+    // 먼저 favoriteTracks를 이름순으로 정렬합니다.
+    const sortedTracksForPlayback = [...favoriteTracks].sort((a, b) => {
+      const nameA = a.name.replace(/\.mp3$/i, '').toLowerCase();
+      const nameB = b.name.replace(/\.mp3$/i, '').toLowerCase();
+      return nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: 'base' });
+    });
+
+    // 정렬된 트랙에서 URI만 추출합니다.
+    const allTrackUris = sortedTracksForPlayback.map(track => track.uri!).filter(Boolean) as string[];
 
     if (allTrackUris.length > 0) {
       navigation.navigate('Player', {
         screen: 'PlayerScreen',
         params: {
-          selectedTracks: allTrackUris, // 모든 URI를 재생 목록으로 전달
-          playlist: favoriteTracks, // 전체 목록을 재생 목록으로 전달
+          selectedTracks: allTrackUris, // 이제 정렬된 URI 목록이 전달됩니다.
+          playlist: sortedTracksForPlayback, // 재생 목록도 정렬된 상태로 전달하는 것이 좋습니다.
         }
       });
     } else {
@@ -188,7 +197,7 @@ const FavoriteScreen: React.FC<FavoriteScreenProps> = ({ navigation, route }) =>
           {/* {item.artist && <Text style={styles.trackArtist}>{item.artist}</Text>} */}
         </TouchableOpacity>
         <TouchableOpacity onPress={() => removeFavorite(item.id)} style={styles.removeButton}>
-          <FontAwesome name="trash" size={RFPercentage(2.5)} color={colors.blue} />
+          <FontAwesome name="trash" size={RFPercentage(3)} color={colors.grey} />
         </TouchableOpacity>
       </View>
     );
@@ -216,41 +225,53 @@ const FavoriteScreen: React.FC<FavoriteScreenProps> = ({ navigation, route }) =>
     );
   };
 
+  // Sort favoriteTracks alphabetically by name
+  const sortedFavoriteTracks = favoriteTracks
+    ? [...favoriteTracks].sort((a, b) => {
+        const nameA = a.name.replace(/\.mp3$/i, '').toLowerCase();
+        const nameB = b.name.replace(/\.mp3$/i, '').toLowerCase();
+        return nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: 'base' });
+      })
+    : [];
+
   return (
-    <WrapperContainer containerStyle={{ paddingHorizontal: 0 }}>
-      <HeaderComponent
+    <WrapperContainer containerStyle={{  paddingHorizontal: 0 }}>
+      {/* <HeaderComponent
         isLeftView={false}
         leftCustomView={LeftCustomComponent}
         rightPressActive={false}
         isCenterView={false}
-        centerText="⭐ 즐겨찾기"
+        centerText="⭐"
         isRight={false}
         isRightView={false}
-      />
+      /> */}
       <View style={styles.container}>
         {isLoading ? ( // 로딩 중일 때 로딩 인디케이터 표시
           <ActivityIndicator size="large" color={colors.blue} style={styles.loadingIndicator} />
-        ) : favoriteTracks?.length === 0 ? (
+        ) : sortedFavoriteTracks?.length === 0 ? (
           <Text style={styles.emptyListText}>즐겨찾는 곡이 없습니다.</Text>
         ) : (
-          <>
+          <View style ={{marginTop: RFPercentage(3)}}>
               <FlatList
-                data={favoriteTracks}
+                data={sortedFavoriteTracks} // Use the sorted array here
                 keyExtractor={item => item.id}
                 renderItem={renderFavoriteItem}
                 contentContainerStyle={styles.flatListContent}
               />
               {/* 모든 즐겨찾기 재생 버튼 */}
-              {!isLoading && favoriteTracks && favoriteTracks.length > 0 && (
-                <TouchableOpacity
-                  style={styles.playAllButton}
-                  onPress={handlePlayAllFavorites}
-                >
-                  <FontAwesome name="play" size={RFPercentage(3)} color={colors.white} style={styles.playIcon} />
-                  <Text style={styles.playAllButtonText}>모든 즐겨찾기 재생</Text>
-                </TouchableOpacity>
+              {!isLoading && sortedFavoriteTracks && sortedFavoriteTracks.length > 0 && (
+                // Add a new View here to wrap the button and apply the background
+               
+                  <TouchableOpacity
+                    style={styles.playAllButton}
+                    onPress={handlePlayAllFavorites}
+                  >
+                    <FontAwesome name="play" size={RFPercentage(3)} color={colors.white} style={styles.playIcon} />
+                    <Text style={styles.playAllButtonText}>모든 즐겨찾기 재생</Text>
+                  </TouchableOpacity>
+                
               )}
-          </>
+          </View>
 
         )}
       </View>
@@ -261,8 +282,9 @@ const FavoriteScreen: React.FC<FavoriteScreenProps> = ({ navigation, route }) =>
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    padding: 20,
+    // flex: 1,
+    height: height * 0.75,
+    paddingHorizontal: RFPercentage(3),
     backgroundColor: colors.lightGrey,
   },
   loadingIndicator: {
@@ -311,15 +333,21 @@ const styles = StyleSheet.create({
   flatListContent: {
     paddingBottom: 20,
   },
+  // playAllButtonWrapper: { // <--- NEW STYLE DEFINITION
+  //   backgroundColor: colors.lightGrey, // Set the background to lightGrey
+  //   padding: RFPercentage(2), // Add some vertical padding around the button
+  //   // You might want to adjust horizontal padding if needed,
+  //   // but the button itself has marginHorizontal
+  // },
   playAllButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.blue, // 버튼의 눈에 띄는 색상
     paddingVertical: 15,
-    borderRadius: 30, // 둥글게 만들기
+    borderRadius: RFPercentage(5), // 둥글게 만들기
     marginHorizontal: 20,
-    marginBottom: 20,
+    // marginBottom: RFPercentage(2),
     elevation: 5,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },

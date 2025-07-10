@@ -111,7 +111,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = props => {
 
   return (
     <WrapperContainer containerStyle={{paddingHorizontal: 0}}>
-      <HeaderComponent
+      {/* <HeaderComponent
         rightPressActive={false}
         centerText={strings.USER_PROFILE}
         containerStyle={{paddingHorizontal: 8}}
@@ -120,7 +120,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = props => {
         isRightView={false}
         rightText={''}
         // rightCustomView={RightCustomComponent}
-      />
+      /> */}
 
       {loading ? (
         <>
@@ -157,23 +157,24 @@ const ProfileScreen: React.FC<ProfileScreenProps> = props => {
                         console.log('사용자 정보 클릭 ....');
                         props.navigation.navigate('SystemInfoScreen');
                       }}
-                      style={styles.HeadTitleText}>
+                      style={styles.folderItemContainer}>
                         시스템 정보
                         {'  ▶️ ' } {/* 인디케이터 추가 */}
                   </Text>
+
                   <Text
                       onPress={() => {
                         console.log('수면 체크 주기 클릭');
                         setShowSleepTimerOptions(true);
                       }}
-                      style={styles.HeadTitleText}>
+                      style={styles.folderItemContainer}>
                         수면 체크 시간
                         {'  ▶️ ' } {/* 인디케이터 추가 */}
                   </Text>
 
                   <Text
                       onPress={fetchAndShowSleepRecords} // Call the new function here
-                      style={styles.HeadTitleText}>
+                      style={styles.folderItemContainer}>
                         수면 기록
                         {'  ▶️ ' } {/* 인디케이터 추가 */}
                   </Text>
@@ -246,6 +247,24 @@ const styles = StyleSheet.create({
     marginTop: RFPercentage(2),
     borderColor: 'blue',
     borderBottomWidth: 1,
+  },
+
+  folderItemContainer: {
+    flexDirection: 'row',
+    fontWeight: 'bold',
+    fontSize: RFPercentage(2.5),
+    alignItems: 'center',
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd',
+    borderRadius: 8,
+    marginBottom: 8,
+    paddingRight: 10,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
   },
 
   HCStack: {
