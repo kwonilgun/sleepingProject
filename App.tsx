@@ -47,7 +47,10 @@ import {
 } from 'react-native-permissions';
 // import { useVoiceRecognition } from './Screens/Player/hooks/useVoiceRecognition';
 import Voice from "@react-native-voice/voice";
+<<<<<<< HEAD
 import colors from './styles/colors';
+=======
+>>>>>>> eb8dac8321e18e39c757dadb59838a9c39b55013
 
 
 // AsyncStorage Key

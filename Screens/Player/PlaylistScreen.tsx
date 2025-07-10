@@ -32,6 +32,13 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { width } from '../../styles/responsiveSize';
+<<<<<<< HEAD
+=======
+
+
+
+// import { convertEucKrToUtf8 } from '../../utils/converEucKrToUtf8';
+>>>>>>> eb8dac8321e18e39c757dadb59838a9c39b55013
 
 export interface PlaylistItem {
   id: string;
@@ -572,6 +579,7 @@ const PlaylistScreen: React.FC<PlaylistScreenProps> = ({ navigation }) => {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? RFPercentage(1) : 0}
       >
+<<<<<<< HEAD
         {
           !isLoading ? (
             <View style={styles.container}>
@@ -587,6 +595,69 @@ const PlaylistScreen: React.FC<PlaylistScreenProps> = ({ navigation }) => {
                 {searchQuery.length > 0 && ( // Show clear button only when there's text
                   <TouchableOpacity onPress={clearSearch} style={styles.clearButton}>
                     <FontAwesome name="times-circle" size={RFPercentage(3)} color={colors.grey} />
+=======
+        <View style={styles.container}>
+          {/* Search Input */}
+          <TextInput
+            style={styles.searchInput}
+            placeholder="음악 검색..."
+            placeholderTextColor="#888"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+
+          <View style={styles.selectionButtonsContainer}>
+            {/* 모두 선택 Button */}
+            <TouchableOpacity
+              onPress={selectAllTracks}
+              style={[
+                styles.button,
+                { backgroundColor: '#007bff' }, // Enabled color
+                (areAllSelected || flatDisplayList.filter(item => item.type === 'file').length === 0) && styles.disabledButton, // Disabled styles
+              ]}
+              disabled={areAllSelected || flatDisplayList.filter(item => item.type === 'file').length === 0}
+            >
+              <Text style={styles.buttonText}>모두 선택</Text>
+            </TouchableOpacity>
+
+            <View style={{ width: width * 0.3 }} />
+
+            {/* 모두 해제 Button */}
+            <TouchableOpacity
+              onPress={deselectAllTracks}
+              style={[
+                styles.button,
+                { backgroundColor: '#dc3545' }, // Enabled color
+                selectedTrackUris.length === 0 && styles.disabledButton, // Disabled styles
+              ]}
+              disabled={selectedTrackUris.length === 0}
+            >
+              <Text style={styles.buttonText}>모두 해제</Text>
+            </TouchableOpacity>
+          </View>
+          <FlatList
+            data={flatDisplayList}
+            keyExtractor={item => item.id}
+            renderItem={renderPlaylistItem}
+            style={styles.flatList}
+            contentContainerStyle={styles.flatListContent}
+          />
+          {/* <View style={styles.buttonContainer}>
+            <Button
+              title={`선택된 곡 재생 (${selectedTrackUris.length})`}
+              onPress={handlePlaySelected}
+              color="blue"
+              disabled={selectedTrackUris.length === 0}
+            />
+          </View> */}
+          {!isLoading && selectedTrackUris.length > 0 && (
+                  <TouchableOpacity
+                    style={styles.playAllButton}
+                    onPress={handlePlaySelected}
+                  >
+                    <FontAwesome name="play" size={RFPercentage(3)} color={colors.white} style={styles.playIcon} />
+                    <Text style={styles.playAllButtonText}>선택된 곡 재생 ({selectedTrackUris.length})</Text>
+>>>>>>> eb8dac8321e18e39c757dadb59838a9c39b55013
                   </TouchableOpacity>
                 )}
               </View>
@@ -774,11 +845,34 @@ const styles = StyleSheet.create({
   selectionButtonsContainer: {
     width: width * 0.9,
     flexDirection: 'row',
+<<<<<<< HEAD
     justifyContent: 'space-between', // This is the key change for even distribution
     alignItems: 'center', // Align items vertically in the center
     marginBottom: RFPercentage(1),
     // borderWidth: 1,
     // borderColor: 'red',
+=======
+    alignContent: 'space-between',
+    // Add other styles for your container if needed
+  },
+  button: {
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonText: {
+    color: '#fff', // White text for enabled state
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  disabledButton: {
+    backgroundColor: '#6c757d', // Darker gray for disabled background
+    // You might also want to change the text color for disabled state
+    // For example:
+    // opacity: 0.7,
+>>>>>>> eb8dac8321e18e39c757dadb59838a9c39b55013
   },
   button: {
     width: width * 0.3,
