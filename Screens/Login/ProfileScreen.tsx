@@ -29,19 +29,14 @@ import axios, { AxiosResponse } from 'axios';
 import { baseURL } from '../../assets/common/BaseUrl';
 import { UserFormInput } from '../model/interface/IAuthInfo';
 import { jwtDecode } from 'jwt-decode';
-// Import the new SleepRecordsModal
-// import SleepRecordsModal from './SleepRecordsModal'; // Adjust the path as needed
 import { getToken } from '../../utils/getSaveToken';
-import SleepRecordsModal from './SleepRecordsModal';
-
-// import deleteOrder from '../Orders/deleteOrder';
-// import { AsyncStorage } from 'react-native';
-
-
-// import { Badge } from 'react-native-elements';
+import SleepRecordsModal from '../Player/components/SleepRecordsModal';
+import SleepAvgTimeModal from '../Player/components/SleepAvgTimeModal';
+import SleepAvgStartTimeModal from '../Player/components/SleepAvgStartTimeModal';
 
 
-interface SleepRecord { // Define this interface to match your API response
+
+export interface SleepRecord { // Define this interface to match your API response
   record_date: string;
   start_time: string | null;
   end_time: string | null;
@@ -49,12 +44,13 @@ interface SleepRecord { // Define this interface to match your API response
 
 const ProfileScreen: React.FC<ProfileScreenProps> = props => {
   const {state} = useAuth(); // Destructure getToken from useAuth
-  const [isLogin, setIsLogin] = useState<boolean>(false);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(true);
   const [showSleepTimerOptions, setShowSleepTimerOptions] = useState<boolean>(false);
+  const [showSleepAvgTimeOptions, setShowSleepAvgTimeOptions] = useState<boolean>(false);
+  const [showSleepAvgStartTimeOptions, setShowSleepAvgStartTimeOptions] = useState<boolean>(false);
   const [showSleepTimeList, setShowSleepTimeList] = useState<boolean>(false);
   const [sleepRecords, setSleepRecords] = useState<SleepRecord[]>([]); // New state for sleep records
-  const [recordsLoading, setRecordsLoading] = useState<boolean>(false); // New state for records loading
+  const [recordsLoading, setRecordsLoading] = useState<boolean>(true); // New state for records loading
 
 
   useFocusEffect(
@@ -64,23 +60,24 @@ const ProfileScreen: React.FC<ProfileScreenProps> = props => {
         state.isAuthenticated,
       );
 
-      setIsLogin(true);
-      // getUserProfile();
+      fetchSleepRecords();
 
       return () => {
         // setUserProfile(null);
+        setLoading(true);
 
       };
     }, []),
   );
 
-  async function fetchAndShowSleepRecords() {
-    setRecordsLoading(true); // Start loading
-    setShowSleepTimeList(true); // Show the modal immediately, with loading state
+  async function fetchSleepRecords() {
+    setLoading(true); // Start loading
+    // setShowSleepTimeList(true); // Show the modal immediately, with loading state
 
     const token = await getToken();
     if (!token) {
-      setRecordsLoading(false);
+      // setRecordsLoading(false);
+      console.log('token 이 없다.')
       return;
     }
 
@@ -104,7 +101,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = props => {
       console.error('Error fetching sleep records:', error);
       setSleepRecords([]); // Clear records on error
     } finally {
-      setRecordsLoading(false); // End loading regardless of success or failure
+      setLoading(false); // End loading regardless of success or failure
     }
   }
 
@@ -128,22 +125,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = props => {
         </>
       ) : (
         <>
-          {!isLogin ? (
-            <View style={{alignItems: 'center', marginTop: 10}}>
-              <View style={{margin: RFPercentage(2), alignItems: 'flex-end'}}>
-                <TouchableOpacity
-                  onPress={() => {
-                    console.log('CartMainScreen: 로그인 필요합니다. ');
-                  }}>
-                  <View style={GlobalStyles.buttonSmall}>
-                    <Text style={GlobalStyles.buttonTextStyle}>
-                      "로그인 필요합니다"
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              </View>
-            </View>
-          ) : (
+         
             <KeyboardAvoidingView
               behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
               style={GlobalStyles.containerKey}>
@@ -173,9 +155,35 @@ const ProfileScreen: React.FC<ProfileScreenProps> = props => {
                   </Text>
 
                   <Text
-                      onPress={fetchAndShowSleepRecords} // Call the new function here
+                      onPress={() => {
+                        setShowSleepTimeList(true);
+                        setRecordsLoading(false);
+                      } // Call the new function here
+                      }
                       style={styles.folderItemContainer}>
                         수면 기록
+                        {'  ▶️ ' } {/* 인디케이터 추가 */}
+                  </Text>
+
+                   <Text
+                      onPress={() => {
+                        console.log('월별 평균 입면 시간 클릭');
+                        setShowSleepAvgTimeOptions(true);
+                        setRecordsLoading(false);
+                      }}
+                      style={styles.folderItemContainer}>
+                        평균 입면 시간
+                        {'  ▶️ ' } {/* 인디케이터 추가 */}
+                  </Text>
+
+                  <Text
+                      onPress={() => {
+                        console.log('월별 평균 수면 시작 시간 클릭');
+                        setShowSleepAvgStartTimeOptions(true);
+                        setRecordsLoading(false);
+                      }}
+                      style={styles.folderItemContainer}>
+                        평균 수면 시작 시간
                         {'  ▶️ ' } {/* 인디케이터 추가 */}
                   </Text>
 
@@ -188,15 +196,38 @@ const ProfileScreen: React.FC<ProfileScreenProps> = props => {
                   {/* Sleep Records List Modal */}
                   <SleepRecordsModal
                     isVisible={showSleepTimeList}
-                    onClose={() => setShowSleepTimeList(false)}
+                    onClose={() => {
+                      // setRecordsLoading(true);
+                      setShowSleepTimeList(false);}
+                    }
                     records={sleepRecords}
                     loading={recordsLoading}
                   />
 
+                  <SleepAvgTimeModal
+                    isVisible={showSleepAvgTimeOptions}
+                    onClose={() => {
+                      setShowSleepAvgTimeOptions(false);
+                      // setRecordsLoading(true);
+                      console.log('SleepingAvgTimeModal onClose ....');
+                    }}
+                    records={sleepRecords}
+                    loading={recordsLoading}
+                  />
+                  <SleepAvgStartTimeModal
+                    isVisible={showSleepAvgStartTimeOptions}
+                    onClose={() => {
+                      setShowSleepAvgStartTimeOptions(false);
+                      // setRecordsLoading(true);
+                      console.log('SleepingAvgTimeModal onClose ....');
+                    }}
+                    records={sleepRecords}
+                    loading={recordsLoading}
+                  />
                 </View>
               </ScrollView>
             </KeyboardAvoidingView>
-          )}
+
         </>
       )}
     </WrapperContainer>

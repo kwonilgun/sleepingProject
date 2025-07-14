@@ -96,13 +96,13 @@ export const useTtsSetup = ({
       initTTS();
 
       // Define your event handlers
-      const onSpeechStart = () => console.log('TTS 시작');
-      const onSpeechProgress = (event:any ) => console.log("progress", event);
+      const onSpeechStart = () => console.log('useTtsSetup TTS 시작');
+      const onSpeechProgress = (event:any ) => console.log("useTtsSetup progress", event);
       const onSpeechFinish = (event:any ) => {
-        console.log('Tts.addEventListner finish', event);
+        console.log('useTtsSetup finish', event);
         startVoiceRecognition();
       };
-      const onSpeechCancel = (event:any) => console.log("cancel", event);
+      const onSpeechCancel = (event:any) => console.log("useTtsSetup cancel", event);
 
       // TTS 이벤트 리스너 등록
       Tts.addEventListener('tts-start', onSpeechStart);

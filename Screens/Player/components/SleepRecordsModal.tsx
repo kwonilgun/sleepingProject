@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { RFPercentage } from 'react-native-responsive-fontsize';
-import colors from '../../styles/colors';
-import GlobalStyles from '../../styles/GlobalStyles';
-import { width } from '../../assets/common/BaseValue';
+import colors from '../../../styles/colors';
+import GlobalStyles from '../../../styles/GlobalStyles';
+import { width } from '../../../assets/common/BaseValue';
+import { SleepRecord } from '../../Login/ProfileScreen';
 
-interface SleepRecord {
-  record_date: string; // YYYY-MM-DD format
-  start_time: string | null;
-  end_time: string | null;
-}
+// interface SleepRecord {
+//   record_date: string; // YYYY-MM-DD format
+//   start_time: string | null;
+//   end_time: string | null;
+// }
 
 interface SleepRecordsModalProps {
   isVisible: boolean;
@@ -38,7 +39,7 @@ const SleepRecordsModal: React.FC<SleepRecordsModalProps> = ({ isVisible, onClos
     }
     // Reset selected month when modal opens or records change
     setSelectedMonth(null);
-  }, [records]);
+  }, []);
 
   const calculateSleepDuration = (startTime: string | null, endTime: string | null, recordDate: string): string => {
     if (!startTime || !endTime) {

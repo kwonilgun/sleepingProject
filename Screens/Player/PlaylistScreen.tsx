@@ -640,6 +640,7 @@ const PlaylistScreen: React.FC<PlaylistScreenProps> = ({ navigation }) => {
                         onPress={handlePlaySelected}
                         testID="playSelectButton"
                       >
+                        <Text style={styles.playAllButtonText}>재생</Text>
                         <FontAwesome name="play" size={RFPercentage(3)} color={colors.white} style={styles.playIcon} />
                         <Text style={styles.playAllButtonText}>({selectedTrackUris.length})</Text>
                       </TouchableOpacity>
@@ -813,11 +814,13 @@ const styles = StyleSheet.create({
     },
   playAllButtonText: {
       color: colors.white,
-      fontSize: RFPercentage(1.5),
+      fontSize: RFPercentage(2),
       fontWeight: 'bold',
-      marginLeft: 10,
+      // marginLeft: 10,
     },
-  playIcon: {},
+  playIcon: {
+    marginHorizontal: RFPercentage(2),
+  },
 });
 
 export default PlaylistScreen;

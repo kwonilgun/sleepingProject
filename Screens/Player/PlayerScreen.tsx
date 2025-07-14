@@ -54,7 +54,7 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ route, navigation }) => {
   const [playbackSpeed, setPlaybackSpeed] = useState<number>(1.0); // New state for playback speed
   const [showSpeedModal, setShowSpeedModal] = useState<boolean>(false); // New state for modal visibility
   const [countdownSeconds, setCountdownSeconds] = useState<number>(0); // New state for countdown
-
+  const [cancelSleepTimerButton, setCancelSleepTimerButton] = useState<boolean>(true); // 수면모드 취소 버튼 disable
   // Ref management
   const sleepTimerRef = useRef<NodeJS.Timeout | null>(null);
   const sleepTimerCountdownIntervalRef = useRef<NodeJS.Timeout | null>(null); // Ref for countdown interval
@@ -63,6 +63,7 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ route, navigation }) => {
   const speechTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const voiceResponseHandledRef = useRef(false);
   const afterSleepTimerRef = useRef<number>(0.1);
+
 
   // Player control hook
   const {
@@ -125,6 +126,10 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ route, navigation }) => {
 
   // Handle voice interaction result
   const handleVoiceInteractionResult = async (continueMusic: boolean) => {
+
+    //음성 인식 이후 버튼 enable
+    setCancelSleepTimerButton(true);
+
     if (speechTimeoutRef.current) {
       clearTimeout(speechTimeoutRef.current);
       speechTimeoutRef.current = null;
@@ -177,12 +182,13 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ route, navigation }) => {
       setSleepTimerActive(false);
 
       sleepTimerCountRef.current = 0;
+      setRepeatMode(RepeatMode.Off);  // 2025-06-26 13:41:44, repeat mode off
       Alert.alert(
-        '수면모드',
-        '음악이 중단되었습니다.',
+        '입면모드',
+        '응답이 없어서 입면모드로 들어갔습니다. .',
         [{ text: '확인', onPress: async () => {
-          console.log('음악이 중단되었습니다.');
-          setRepeatMode(RepeatMode.Off);  // 2025-06-26 13:41:44, repeat mode off
+          console.log('응답이 없어서 입면모드로 들어갔습니다. .');
+         
         }}]
       );
     }
@@ -280,15 +286,19 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ route, navigation }) => {
     }
 
     try {
-      Tts.speak('잠 들었나요?');
+      // '수면모드' 버튼 disable
+      setCancelSleepTimerButton(false);
+
+      Tts.speak('잠 들었나요오?');
     } catch (error) {
       console.error('TTS error:', error);
       handleVoiceInteractionResult(false);
     }
   };
 
-  // Sleep timer management
   const cancelSleepTimer = async () => {
+
+
     if (sleepTimerRef.current) {
       clearTimeout(sleepTimerRef.current);
       sleepTimerRef.current = null;
@@ -297,12 +307,14 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ route, navigation }) => {
       clearInterval(sleepTimerCountdownIntervalRef.current);
       setCountdownSeconds(0);
     }
+
+
     setSleepTimerActive(false);
     sleepTimerCountRef.current = 0;
-    await ScreenBrightness.setBrightness(0.3);
+    await ScreenBrightness.setBrightness(0.5);
     await TrackPlayer.stop();
     setRepeatMode(RepeatMode.Off); // 2025-06-26 13:41:44, repeat mode off
-    sendSleepModeEndTime(new Date().toISOString());
+    // sendSleepModeEndTime(new Date().toISOString());, cancel을 했기 때문에 보내지 않는다.
   };
 
   const startSleepTimer = async () => {
@@ -436,25 +448,33 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ route, navigation }) => {
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity
-          onPress={startSleepTimer}
-          style={[
-            styles.sleepModeButton,
-            displayTitle ? (sleepTimerActive ? styles.sleepModeButtonActive : styles.sleepModeButtonInactive) : null,
-          ]}
-        >
-          {displayTitle ? (
-            <>
-            <MaterialIcon name="sleep" size={RFPercentage(3)} color="white" />
-            <Text style={styles.sleepModeButtonText}>
-                        {sleepTimerActive ? '수면모드 활성화됨 (취소)' : '수면모드'}
-            </Text>
-            </>
-          ) : null}
-        </TouchableOpacity>
+       
 
       </View>
-      <View style= {{flex:1, backgroundColor: colors.lightGrey}}>
+
+
+
+      <View style= {{flex:1}}>
+        { cancelSleepTimerButton  && (
+            <TouchableOpacity
+                onPress={startSleepTimer}
+                style={[
+                  styles.sleepModeButton,
+                  displayTitle ? (sleepTimerActive ? styles.sleepModeButtonActive : styles.sleepModeButtonInactive) : null,
+                ]}
+              >
+                {displayTitle  ? (
+                  <>
+                  <MaterialIcon name="sleep" size={RFPercentage(3)} color="white" />
+                  <Text style={styles.sleepModeButtonText}>
+                              {sleepTimerActive ? '수면모드 활성화됨 (취소)' : '수면모드'}
+                  </Text>
+                  </>
+                ) : null}
+            </TouchableOpacity>
+
+        )}
+
         {sleepTimerActive && countdownSeconds > 0 && (
            <View style = {styles.countdownContainer}>
               <Text style={styles.countdownText}>
@@ -532,7 +552,7 @@ const styles = StyleSheet.create({
   container: {
     // flex: 1,
     // height : height * 0.9,
-    height: height * 0.7,
+    height: height * 0.65,
     flexDirection: 'column',
     padding: 20,
     justifyContent: 'center',
@@ -562,7 +582,7 @@ const styles = StyleSheet.create({
     width: width * 0.8,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: RFPercentage(5),
+    marginTop: RFPercentage(1),
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: RFPercentage(5), // 둥글게 만들기,
