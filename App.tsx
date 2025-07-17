@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable react-hooks/rules-of-hooks */
 /*
  * File: App.tsx
@@ -24,7 +25,7 @@ import {
   Platform, // Import TouchableOpacity for the stop button
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import TrackPlayer, { Event, State, Capability } from 'react-native-track-player';
+import TrackPlayer, { Event, Capability } from 'react-native-track-player';
 
 // Contexts & Redux
 import { AuthProvider } from './context/store/Context.Manager';
@@ -40,13 +41,11 @@ import strings from './constants/lang'; // Assuming this is your localization ut
 const introAudio = require('./assets/audio/intro.mp3');
 
 import {
-  check,
   request,
   RESULTS,
-  PERMISSIONS,
+  PERMISSIONS
 } from 'react-native-permissions';
 // import { useVoiceRecognition } from './Screens/Player/hooks/useVoiceRecognition';
-import Voice from "@react-native-voice/voice";
 import colors from './styles/colors';
 
 
@@ -88,16 +87,9 @@ const App: React.FC = () => {
  const [hasMicrophonePermission, setHasMicrophonePermission] = useState<boolean | null>(null); // State for microphone permission
 
  
-  // Ref to store the promise's resolve function for external control
+
  const introAudioPromiseResolve = useRef<((value: boolean) => void) | null>(null);
 
-//  const recognizedTextRef = useRef('');
-//  const voiceResponseHandledRef = useRef(false);
-
-
-//  const handleVoiceInteraction = async (continueMusic: boolean) => {
-//   console.log('App.tsx handelVoiceInteraction continueMusic', continueMusic);
-//  };
 
   const requestMicrophonePermission = useCallback(async (): Promise<boolean> => {
   // Check if permission was previously granted and persisted
@@ -342,7 +334,7 @@ const App: React.FC = () => {
         <Provider store={store}>
           <SleepTimerProvider>
             <NavigationContainer >
-              <MainTab initialUrl='hello' />
+              <MainTab initialUrl="hello" />
             </NavigationContainer>
           </SleepTimerProvider>
         </Provider>

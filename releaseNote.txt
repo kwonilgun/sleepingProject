@@ -89,7 +89,7 @@
      . Header 삭제
      . favorite list 확장
 
-2025-07-11 10:25:07, version 1.2.6
+2025-07-11 , version 1.2.6
      . '재생' 문자열 추가
      . 수면모드 취소 버튼 오동작 수정, 음성인식 모드에서 버튼 disable
      . splash screen '잠잘자' 로 수정
