@@ -494,6 +494,7 @@ const styles = StyleSheet.create({
     fontSize: RFPercentage(2.5),
     alignItems: 'center',
     paddingVertical: 15,
+    paddingHorizontal: RFPercentage(1),
     borderBottomWidth: 1,
     borderBottomColor: '#ddd',
     borderRadius: 8,

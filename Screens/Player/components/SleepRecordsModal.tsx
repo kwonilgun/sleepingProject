@@ -6,12 +6,6 @@ import GlobalStyles from '../../../styles/GlobalStyles';
 import { width } from '../../../assets/common/BaseValue';
 import { SleepRecord } from '../../Login/ProfileScreen';
 
-// interface SleepRecord {
-//   record_date: string; // YYYY-MM-DD format
-//   start_time: string | null;
-//   end_time: string | null;
-// }
-
 interface SleepRecordsModalProps {
   isVisible: boolean;
   onClose: () => void;
@@ -20,13 +14,13 @@ interface SleepRecordsModalProps {
 }
 
 const SleepRecordsModal: React.FC<SleepRecordsModalProps> = ({ isVisible, onClose, records, loading }) => {
-  const [selectedMonth, setSelectedMonth] = useState<string | null>(null); // State to store the selected month (YYYY-MM)
-  const [monthlyRecords, setMonthlyRecords] = useState<Record<string, SleepRecord[]>>({});
+  const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
+  const [monthlyRecords, setMonthlyRecords] = useState<Record<string, SleepRecord>>({});
 
   useEffect(() => {
     if (records.length > 0) {
       const groupedRecords: Record<string, SleepRecord[]> = records.reduce((acc, record) => {
-        const month = record.record_date.substring(0, 7); // Extract YYYY-MM
+        const month = record.record_date.substring(0, 7);
         if (!acc[month]) {
           acc[month] = [];
         }
@@ -37,9 +31,8 @@ const SleepRecordsModal: React.FC<SleepRecordsModalProps> = ({ isVisible, onClos
     } else {
       setMonthlyRecords({});
     }
-    // Reset selected month when modal opens or records change
     setSelectedMonth(null);
-  }, []);
+  }, [records]); // Added records to the dependency array to re-run when records change
 
   const calculateSleepDuration = (startTime: string | null, endTime: string | null, recordDate: string): string => {
     if (!startTime || !endTime) {
@@ -47,31 +40,19 @@ const SleepRecordsModal: React.FC<SleepRecordsModalProps> = ({ isVisible, onClos
     }
 
     try {
-      // Create Date objects using the record_date to handle overnight sleep correctly
-      // We assume start_time is on record_date
-       console.log('startDate = ', startTime.toString());
-      console.log('endDate = ', endTime.toString());
-      const startDate = new Date(startTime);
-      let endDate = new Date(endTime);
-      console.log('startDate = ', startDate.toString());
-      console.log('endDate = ', endDate.toString());
+      const startDate = new Date(`${recordDate}T${startTime}:00`); // Use recordDate for startDate
+      let endDate = new Date(`${recordDate}T${endTime}:00`);
 
-
-      // If end_time is earlier than start_time, it means sleep crossed midnight
       if (endDate.getTime() < startDate.getTime()) {
-        endDate = new Date(`${recordDate}T${endTime}:00`);
-        endDate.setDate(endDate.getDate() + 1); // Add a day to the end_date
+        endDate.setDate(endDate.getDate() + 1);
       }
 
       const durationMs = endDate.getTime() - startDate.getTime();
-      console.log('durationMs = ', durationMs);
-      if (durationMs < 0) { // Should not happen with the above logic, but a safeguard
+      if (durationMs < 0) {
         return 'Invalid Time';
       }
 
-      // Calculate total seconds
       const totalSeconds = Math.floor(durationMs / 1000);
-
       const hours = Math.floor(totalSeconds / 3600);
       const minutes = Math.floor((totalSeconds % 3600) / 60);
       const seconds = totalSeconds % 60;
@@ -88,15 +69,16 @@ const SleepRecordsModal: React.FC<SleepRecordsModalProps> = ({ isVisible, onClos
       return false;
     }
     try {
-      const startDateTime = new Date(`${startTime}`);
-      const endDateTime = new Date(`${endTime}`);
+      // Create dummy dates to compare only time parts
+      const dummyDate = '2000-01-01';
+      const startDateTime = new Date(`${dummyDate}T${startTime}`);
+      const endDateTime = new Date(`${dummyDate}T${endTime}`);
       return endDateTime.getTime() < startDateTime.getTime();
     } catch (error) {
       console.error('Error comparing times:', error);
       return false;
     }
   };
-
 
   const renderMonthItem = ({ item }: { item: string }) => (
     <TouchableOpacity
@@ -107,24 +89,26 @@ const SleepRecordsModal: React.FC<SleepRecordsModalProps> = ({ isVisible, onClos
     </TouchableOpacity>
   );
 
-  const renderDayItem = ({ item }: { item: SleepRecord }) =>{
-    const shouldHideEndTime = isEndTimeBeforeStartTime(item.start_time, item.end_time);
-
+  const renderDayItem = ({ item }: { item: SleepRecord }) => {
+    // The previous logic for hiding end time when it's before start time seems to be based on
+    // an assumption that if end time is before start time, it means it's an invalid entry,
+    // or that it signifies an overnight sleep where the end time should be treated as "next day".
+    // However, the `calculateSleepDuration` already handles overnight sleep by adding a day.
+    // So, `isEndTimeBeforeStartTime` should only be used to inform the user about an overnight sleep,
+    // not to hide the end time.
+    // If the intent is to truly hide "N/A" for overnight sleep, that would be a different logic.
+    // For now, I'm removing the `shouldHideEndTime` and displaying both start and end times,
+    // with the duration calculation handling the overnight aspect.
     return (
       <View style={styles.recordItem}>
         <Text style={styles.recordText}>날짜: {item.record_date}</Text>
         <Text style={styles.recordText}>시작 시간: {item.start_time || 'N/A'}</Text>
-        {shouldHideEndTime ? (
-          <Text style={styles.recordText}>종료 시간: {item.end_time ? 'N/A' : 'N/A'}</Text>
-        ) : (
-          <Text style={styles.recordText}>종료 시간: {item.end_time || 'N/A'}</Text>
-        )}
+        <Text style={styles.recordText}>종료 시간: {item.end_time || 'N/A'}</Text>
         <Text style={styles.recordText}>
-          입면 시간: {calculateSleepDuration(item.start_time, item.end_time, item.record_date)}
+          수면 시간: {calculateSleepDuration(item.start_time, item.end_time, item.record_date)}
         </Text>
       </View>
     );
-
   };
 
   return (
@@ -141,11 +125,20 @@ const SleepRecordsModal: React.FC<SleepRecordsModalProps> = ({ isVisible, onClos
           {loading ? (
             <Text style={styles.loadingText}>기록을 불러오는 중...</Text>
           ) : records.length === 0 ? (
-            <Text style={styles.noRecordsText}>수면 기록이 없습니다.</Text>
+            // Display "No Records" message and the "확인" button
+            <>
+              <Text style={styles.noRecordsText}>수면 기록이 없습니다.</Text>
+              <TouchableOpacity
+                style={GlobalStyles.buttonSmall} // Assuming GlobalStyles.buttonSmall is a good fit
+                onPress={onClose}
+              >
+                <Text style={GlobalStyles.buttonTextStyle}>확인</Text>
+              </TouchableOpacity>
+            </>
           ) : (
+            // Display records as before
             <>
               {selectedMonth ? (
-                // Display daily records for the selected month
                 <>
                   <Text style={styles.subTitle}>{selectedMonth} 기록</Text>
                   <FlatList
@@ -157,17 +150,16 @@ const SleepRecordsModal: React.FC<SleepRecordsModalProps> = ({ isVisible, onClos
                   />
                   <TouchableOpacity
                     style={GlobalStyles.buttonSmall}
-                    onPress={() => setSelectedMonth(null)} // Go back to month list
+                    onPress={() => setSelectedMonth(null)}
                   >
                     <Text style={GlobalStyles.buttonTextStyle}>월별 목록으로 돌아가기</Text>
                   </TouchableOpacity>
                 </>
               ) : (
-                // Display monthly list
                 <>
                   <Text style={styles.subTitle}>월별 기록</Text>
                   <FlatList
-                    data={Object.keys(monthlyRecords).sort((a, b) => b.localeCompare(a))} // Sort months in descending order
+                    data={Object.keys(monthlyRecords).sort((a, b) => b.localeCompare(a))}
                     renderItem={renderMonthItem}
                     keyExtractor={(item) => item}
                     showsVerticalScrollIndicator={true}
@@ -231,7 +223,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   monthItem: {
-    backgroundColor: '#e0f7fa', // Lighter blue for month items
+    backgroundColor: '#e0f7fa',
     padding: 15,
     borderRadius: 10,
     marginBottom: 10,
@@ -242,7 +234,7 @@ const styles = StyleSheet.create({
   monthText: {
     fontSize: RFPercentage(2.2),
     fontWeight: 'bold',
-    color: colors.blue, // Primary color for month text
+    color: colors.blue,
   },
   recordItem: {
     backgroundColor: '#f0f0f0',

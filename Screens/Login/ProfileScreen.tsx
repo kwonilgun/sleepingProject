@@ -77,7 +77,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = props => {
     const token = await getToken();
     if (!token) {
       // setRecordsLoading(false);
-      console.log('token 이 없다.')
+      console.log('token 이 없다.');
       return;
     }
 
@@ -98,7 +98,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = props => {
         setSleepRecords([]); // Clear records if not 200
       }
     } catch (error) {
-      console.error('Error fetching sleep records:', error);
+      console.error('Error fetching sleep records:');
       setSleepRecords([]); // Clear records on error
     } finally {
       setLoading(false); // End loading regardless of success or failure
@@ -125,12 +125,11 @@ const ProfileScreen: React.FC<ProfileScreenProps> = props => {
         </>
       ) : (
         <>
-         
             <KeyboardAvoidingView
               behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
               style={GlobalStyles.containerKey}>
               <ScrollView
-                style={GlobalStyles.scrollView}
+                style={[GlobalStyles.scrollView, {marginTop: Platform.OS === 'android' ? RFPercentage(5) : RFPercentage(0)}]}
                 keyboardShouldPersistTaps="handled">
                 <View style={GlobalStyles.VStack}>
 
@@ -286,6 +285,7 @@ const styles = StyleSheet.create({
     fontSize: RFPercentage(2.5),
     alignItems: 'center',
     paddingVertical: 15,
+    paddingHorizontal: RFPercentage(1),
     borderBottomWidth: 1,
     borderBottomColor: '#ddd',
     borderRadius: 8,

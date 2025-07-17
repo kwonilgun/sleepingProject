@@ -66,6 +66,9 @@ export const getInfoOfEmailFromDb = (
       // console.log('Device ID:', deviceId);
 
       const deviceUser = {...user, deviceId: deviceId};
+
+      console.log('EmailLoginScreen deviceUser = ', deviceUser);
+
       const response: AxiosResponse = await axios.post(
         `${baseURL}users/email-login`,
         JSON.stringify(deviceUser),
@@ -77,7 +80,7 @@ export const getInfoOfEmailFromDb = (
         },
       );
 
-      // console.log('response = ', response);
+      console.log('response = ', response);
       if (response && response.data) {
         console.log('useLogin response.data = ', response.data);
         const login = {

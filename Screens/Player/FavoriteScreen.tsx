@@ -10,7 +10,8 @@ import {
   TouchableOpacity,
   Button,
   Alert, // React Native's Alert for user notifications
-  ActivityIndicator, // For loading indicator
+  ActivityIndicator,
+  Platform, // For loading indicator
 } from 'react-native';
 import { RFPercentage } from 'react-native-responsive-fontsize';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
@@ -251,7 +252,7 @@ const FavoriteScreen: React.FC<FavoriteScreenProps> = ({ navigation, route }) =>
         ) : sortedFavoriteTracks?.length === 0 ? (
           <Text style={styles.emptyListText}>즐겨찾는 곡이 없습니다.</Text>
         ) : (
-          <View style ={{marginTop: RFPercentage(3)}}>
+          <View style ={{marginTop: Platform.OS === 'ios' ? RFPercentage(3) : RFPercentage(8)}}>
               <FlatList
                 data={sortedFavoriteTracks} // Use the sorted array here
                 keyExtractor={item => item.id}
@@ -261,7 +262,6 @@ const FavoriteScreen: React.FC<FavoriteScreenProps> = ({ navigation, route }) =>
               {/* 모든 즐겨찾기 재생 버튼 */}
               {!isLoading && sortedFavoriteTracks && sortedFavoriteTracks.length > 0 && (
                 // Add a new View here to wrap the button and apply the background
-               
                   <TouchableOpacity
                     style={styles.playAllButton}
                     onPress={handlePlayAllFavorites}
@@ -269,7 +269,6 @@ const FavoriteScreen: React.FC<FavoriteScreenProps> = ({ navigation, route }) =>
                     <FontAwesome name="play" size={RFPercentage(3)} color={colors.white} style={styles.playIcon} />
                     <Text style={styles.playAllButtonText}>모든 즐겨찾기 재생</Text>
                   </TouchableOpacity>
-                
               )}
           </View>
 

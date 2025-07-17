@@ -16,6 +16,7 @@ import colors from '../../styles/colors';
 import fontFamily from '../../styles/fontFamily';
 import {RFPercentage} from 'react-native-responsive-fontsize';
 import {height} from '../../styles/responsiveSize';
+import { Platform } from 'react-native';
 
 // Define types for props
 interface HeaderComponentProps {
@@ -104,6 +105,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 4,
     borderColor: 'black',
     paddingHorizontal: height * 0.02,
+    marginTop: Platform.OS === 'android' ? RFPercentage(5) : RFPercentage(0),
     // paddingVertical: height * 0.008,
   },
   centerTextStyle: {
