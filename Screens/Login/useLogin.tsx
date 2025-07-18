@@ -90,7 +90,7 @@ export const getInfoOfEmailFromDb = (
         resolve(login);
       }
     } catch (error) {
-      console.log('email 로그인 에러 error=', error);
+      // console.log('email 로그인 에러 error=', error);
       reject(error);
     }
   });

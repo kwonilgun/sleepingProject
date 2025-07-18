@@ -221,7 +221,7 @@ const EmailLoginScreen: React.FC<EmailLoginScreenProps> = ({navigation}) => {
       .catch(error => {
         // 2024-11-17 : 이메일 로그인 에러 처리, 서버에서 에러를 보내는 경우 send와 json에 따라서 status가 달라진다.
 
-        console.error(error);
+        // console.error(error);
         // 2024-11-17: 이메일 로그인 에러 처리 - 서버에서 반환하는 에러에 따라 적절한 상태 처리
         const {status} = error.response?.request || {};
 
